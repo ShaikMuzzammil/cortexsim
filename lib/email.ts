@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resendApiKey = process.env.RESEND_API_KEY;
+const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
 export async function sendContactEmail({
   name,
@@ -14,6 +15,16 @@ export async function sendContactEmail({
   message: string;
 }) {
   const recipient = process.env.CONTACT_EMAIL || "host@cortexsim.io";
+
+  // If no Resend API key, log to console (for development) and return success
+  if (!resend) {
+    console.log("[Contact Form - No Resend Key]");
+    console.log(`From: ${name} <${email}>`);
+    console.log(`Subject: ${subject}`);
+    console.log(`Message: ${message}`);
+    console.log(`To: ${recipient}`);
+    return { id: "dev-mode-no-email-sent" };
+  }
 
   const { data, error } = await resend.emails.send({
     from: "CortexSim <onboarding@resend.dev>",
@@ -44,6 +55,11 @@ export async function sendContactEmail({
 }
 
 export async function sendNewsletterEmail(email: string) {
+  if (!resend) {
+    console.log(`[Newsletter - No Resend Key] Subscribed: ${email}`);
+    return { id: "dev-mode-no-email-sent" };
+  }
+
   const { data, error } = await resend.emails.send({
     from: "CortexSim <onboarding@resend.dev>",
     to: [email],
