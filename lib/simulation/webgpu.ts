@@ -1,3 +1,9 @@
+declare global {
+  interface Navigator {
+    gpu?: any;
+  }
+}
+
 export async function initWebGPU() {
   if (!navigator.gpu) {
     throw new Error("WebGPU not supported");
@@ -44,7 +50,6 @@ export const izhikevichShader = `
     let dt = 0.1;
     let n = arrayLength(&neurons);
 
-    // Calculate synaptic input
     var synapticInput = 0.0;
     for (var i = 0u; i < n; i = i + 1u) {
       if (neurons[i].spike > 0.5) {
@@ -70,16 +75,16 @@ export const izhikevichShader = `
   }
 `;
 
-export async function createSimulationPipeline(device: GPUDevice, neuronCount: number) {
+export async function createSimulationPipeline(device: any, neuronCount: number) {
   const shaderModule = device.createShaderModule({
     code: izhikevichShader,
   });
 
   const bindGroupLayout = device.createBindGroupLayout({
     entries: [
-      { binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: "storage" } },
-      { binding: 1, visibility: GPUShaderStage.COMPUTE, buffer: { type: "read-only-storage" } },
-      { binding: 2, visibility: GPUShaderStage.COMPUTE, buffer: { type: "read-only-storage" } },
+      { binding: 0, visibility: 8, buffer: { type: "storage" } },
+      { binding: 1, visibility: 8, buffer: { type: "read-only-storage" } },
+      { binding: 2, visibility: 8, buffer: { type: "read-only-storage" } },
     ],
   });
 
