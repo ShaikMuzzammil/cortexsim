@@ -1,7 +1,6 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "ghost" | "danger";
@@ -31,11 +30,9 @@ export default function Button({
   };
 
   return (
-    <motion.button
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
+    <button
       className={cn(
-        "relative font-orbitron uppercase tracking-wider border rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed",
+        "relative font-orbitron uppercase tracking-wider border rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]",
         variants[variant],
         sizes[size],
         className
@@ -54,6 +51,6 @@ export default function Button({
       ) : (
         children
       )}
-    </motion.button>
+    </button>
   );
 }
