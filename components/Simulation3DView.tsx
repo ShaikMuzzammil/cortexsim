@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useMemo, useEffect, useState } from "react";
+import { useRef, useMemo, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
@@ -13,10 +13,9 @@ interface Neuron3DProps {
 }
 
 function Neuron3D({ position, voltage, spike, index }: Neuron3DProps) {
-  const meshRef = useRef<THREE.Mesh>(null);
+  const meshRef = useRef<any>(null);
   const [hovered, setHovered] = useState(false);
 
-  // Map voltage to color: -70mV (deep blue) to -55mV (neon cyan) to 30mV (purple spike)
   const color = useMemo(() => {
     if (spike) return new THREE.Color("#9D4EDD");
     const t = Math.max(0, Math.min(1, (voltage + 70) / 15));
@@ -38,7 +37,7 @@ function Neuron3D({ position, voltage, spike, index }: Neuron3DProps) {
           );
       (meshRef.current.material as THREE.MeshStandardMaterial).color.lerp(targetColor, 0.1);
       (meshRef.current.material as THREE.MeshStandardMaterial).emissive.lerp(targetColor, 0.1);
-
+      
       const targetScale = spike ? 1.5 : hovered ? 1.2 : 1;
       meshRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.1);
     }
@@ -72,9 +71,7 @@ function Synapse3D({
   end: [number, number, number];
   active: boolean;
 }) {
-  const lineRef = useRef<THREE.Line>(null);
-
-  const geometry = useMemo(() => {
+  const lineObj = useMemo(() => {
     const curve = new THREE.QuadraticBezierCurve3(
       new THREE.Vector3(...start),
       new THREE.Vector3(
@@ -84,25 +81,22 @@ function Synapse3D({
       ),
       new THREE.Vector3(...end)
     );
-    return new THREE.BufferGeometry().setFromPoints(curve.getPoints(20));
+    const geometry = new THREE.BufferGeometry().setFromPoints(curve.getPoints(20));
+    const material = new THREE.LineBasicMaterial({ color: "#1A1A2E", transparent: true, opacity: 0.2 });
+    return new THREE.Line(geometry, material);
   }, [start, end]);
 
   useFrame(() => {
-    if (lineRef.current) {
-      const material = lineRef.current.material as THREE.LineBasicMaterial;
-      material.opacity = THREE.MathUtils.lerp(material.opacity, active ? 0.8 : 0.2, 0.1);
-      material.color.lerp(
+    if (lineObj) {
+      lineObj.material.opacity = THREE.MathUtils.lerp(lineObj.material.opacity, active ? 0.8 : 0.2, 0.1);
+      lineObj.material.color.lerp(
         active ? new THREE.Color("#00F0FF") : new THREE.Color("#1A1A2E"),
         0.1
       );
     }
   });
 
-  return (
-    <line ref={lineRef} geometry={geometry}>
-      <lineBasicMaterial color="#1A1A2E" transparent opacity={0.2} />
-    </line>
-  );
+  return <primitive object={lineObj} />;
 }
 
 interface Simulation3DViewProps {
@@ -114,7 +108,7 @@ interface Simulation3DViewProps {
 }
 
 function Scene({ neuronPositions, voltages, spikes, synapses, autoRotate }: Simulation3DViewProps) {
-  const groupRef = useRef<THREE.Group>(null);
+  const groupRef = useRef<any>(null);
 
   useFrame((state) => {
     if (groupRef.current && autoRotate) {
@@ -127,7 +121,7 @@ function Scene({ neuronPositions, voltages, spikes, synapses, autoRotate }: Simu
       <ambientLight intensity={0.4} />
       <pointLight position={[5, 5, 5]} intensity={1} color="#00F0FF" />
       <pointLight position={[-5, -5, -5]} intensity={0.5} color="#9D4EDD" />
-
+      
       {neuronPositions.map((pos, i) => (
         <Neuron3D
           key={i}
