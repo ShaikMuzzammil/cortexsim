@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -13,9 +13,8 @@ import {
   Box,
   X,
   LogIn,
-  ChevronRight,
 } from "lucide-react";
-import dynamic from "next/dynamic";
+import dynamicImport from "next/dynamic";
 import SimulationControls from "@/components/Builder/SimulationControls";
 import NodePalette from "@/components/Builder/NodePalette";
 import RasterPlot from "@/components/Charts/RasterPlot";
@@ -24,7 +23,7 @@ import Simulation3DView from "@/components/Simulation3DView";
 import Button from "@/components/ui/Button";
 import { SimulationEngine, NetworkConfig } from "@/lib/simulation/engine";
 
-const FlowCanvas = dynamic(() => import("@/components/Builder/FlowCanvas"), {
+const FlowCanvas = dynamicImport(() => import("@/components/Builder/FlowCanvas"), {
   ssr: false,
   loading: () => (
     <div className="w-full h-full flex items-center justify-center">
@@ -33,7 +32,7 @@ const FlowCanvas = dynamic(() => import("@/components/Builder/FlowCanvas"), {
   ),
 });
 
-export default function BuilderPage() {
+function BuilderContent() {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
   const experimentId = searchParams.get("id");
@@ -43,9 +42,8 @@ export default function BuilderPage() {
   const [show3D, setShow3D] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [simulationName, setSimulationName] = useState("Untitled Experiment");
-
-  // Simulation state
-  const engineRef = useRef<SimulationEngine | null>(null);
+  
+  const engineRef = useRef<any>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [spikeTimes, setSpikeTimes] = useState<number[][]>([]);
@@ -56,7 +54,6 @@ export default function BuilderPage() {
   const [neuronPositions, setNeuronPositions] = useState<[number, number, number][]>([]);
   const [synapses, setSynapses] = useState<{ source: number; target: number; active: boolean }[]>([]);
 
-  // Initialize demo network
   useEffect(() => {
     const config: NetworkConfig = {
       neurons: [
@@ -98,7 +95,6 @@ export default function BuilderPage() {
     const engine = new SimulationEngine(config);
     engineRef.current = engine;
 
-    // Generate random positions for visualization
     const positions: [number, number, number][] = [];
     for (let i = 0; i < engine.getTotalNeurons(); i++) {
       positions.push([
@@ -109,7 +105,6 @@ export default function BuilderPage() {
     }
     setNeuronPositions(positions);
 
-    // Generate synapse connections for 3D view
     const syn3D: { source: number; target: number; active: boolean }[] = [];
     for (let i = 0; i < 20; i++) {
       for (let j = 20; j < 35; j++) {
@@ -125,7 +120,7 @@ export default function BuilderPage() {
 
   const handleSimulationStep = useCallback((state: any) => {
     if (!engineRef.current) return;
-
+    
     setCurrentVoltages(Array.from(state.voltages));
     setCurrentSpikes(state.spikes);
     setTimes((prev) => [...prev.slice(-500), state.time]);
@@ -140,7 +135,6 @@ export default function BuilderPage() {
       return newSpikes;
     });
 
-    // Update synapse activity
     setSynapses((prev) =>
       prev.map((syn) => ({
         ...syn,
@@ -151,7 +145,7 @@ export default function BuilderPage() {
 
   const handlePlayPause = useCallback(() => {
     if (!engineRef.current) return;
-
+    
     if (isRunning) {
       engineRef.current.pause();
       setIsRunning(false);
@@ -183,7 +177,6 @@ export default function BuilderPage() {
       setShowLoginModal(true);
       return;
     }
-    // Save logic would go here
     alert("Experiment saved!");
   }, [session]);
 
@@ -205,7 +198,6 @@ export default function BuilderPage() {
 
   return (
     <div className="min-h-screen pt-16 flex flex-col">
-      {/* Top bar */}
       <div className="h-14 border-b border-neon/10 bg-void/80 backdrop-blur-xl flex items-center px-4 gap-4">
         <div className="flex items-center gap-2">
           <Brain className="w-5 h-5 text-neon" />
@@ -217,68 +209,52 @@ export default function BuilderPage() {
           />
         </div>
         <div className="flex-1" />
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShow3D(!show3D)}
-            className={`p-2 rounded-lg transition-colors ${show3D ? "bg-neon/20 text-neon" : "text-lavenderGray hover:text-softWhite"}`}
-          >
-            <Box className="w-4 h-4" />
-          </button>
-        </div>
+        <button
+          onClick={() => setShow3D(!show3D)}
+          className={`p-2 rounded-lg transition-colors ${show3D ? "bg-neon/20 text-neon" : "text-lavenderGray hover:text-softWhite"}`}
+        >
+          <Box className="w-4 h-4" />
+        </button>
       </div>
 
-      {/* Main content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left sidebar */}
         <div className="w-64 border-r border-neon/10 p-4 space-y-4 overflow-y-auto hidden lg:block">
           <NodePalette />
         </div>
 
-        {/* Center canvas */}
         <div className="flex-1 flex flex-col min-w-0">
           <div className="flex-1 relative">
             <FlowCanvas />
           </div>
 
-          {/* Bottom panel */}
           <div className="h-64 border-t border-neon/10 bg-void/80 backdrop-blur-xl flex">
-            {/* Tabs */}
             <div className="w-48 border-r border-neon/10 p-4 space-y-2">
               <div className="font-orbitron text-xs font-bold text-lavenderGray uppercase tracking-wider mb-3">
                 Output
               </div>
-              {[
-                { id: "raster" as const, label: "Raster Plot", icon: BarChart3 },
-                { id: "voltage" as const, label: "Membrane Potential", icon: Activity },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
-                    activeTab === tab.id
-                      ? "bg-neon/10 text-neon"
-                      : "text-lavenderGray hover:text-softWhite hover:bg-white/5"
-                  }`}
-                >
-                  <tab.icon className="w-4 h-4" />
-                  {tab.label}
-                </button>
-              ))}
+              <button
+                onClick={() => setActiveTab("raster")}
+                className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${activeTab === "raster" ? "bg-neon/10 text-neon" : "text-lavenderGray hover:text-softWhite hover:bg-white/5"}`}
+              >
+                <BarChart3 className="w-4 h-4" />
+                Raster Plot
+              </button>
+              <button
+                onClick={() => setActiveTab("voltage")}
+                className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${activeTab === "voltage" ? "bg-neon/10 text-neon" : "text-lavenderGray hover:text-softWhite hover:bg-white/5"}`}
+              >
+                <Activity className="w-4 h-4" />
+                Membrane Potential
+              </button>
             </div>
 
-            {/* Chart area */}
             <div className="flex-1 p-4">
-              {activeTab === "raster" && (
-                <RasterPlot spikeTimes={spikeTimes} timeWindow={500} />
-              )}
-              {activeTab === "voltage" && (
-                <VoltageTrace voltages={voltages} times={times} />
-              )}
+              {activeTab === "raster" && <RasterPlot spikeTimes={spikeTimes} timeWindow={500} />}
+              {activeTab === "voltage" && <VoltageTrace voltages={voltages} times={times} />}
             </div>
           </div>
         </div>
 
-        {/* Right sidebar */}
         <div className="w-72 border-l border-neon/10 p-4 space-y-4 overflow-y-auto hidden xl:block">
           <SimulationControls
             isRunning={isRunning}
@@ -310,7 +286,6 @@ export default function BuilderPage() {
         </div>
       </div>
 
-      {/* Login Modal */}
       <AnimatePresence>
         {showLoginModal && (
           <motion.div
@@ -360,5 +335,17 @@ export default function BuilderPage() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+export default function BuilderPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-neon border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <BuilderContent />
+    </Suspense>
   );
 }
