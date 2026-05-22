@@ -6,9 +6,9 @@ import { OrbitControls, Stars } from "@react-three/drei";
 import * as THREE from "three";
 
 function Neuron({ position, color, scale = 1 }: { position: [number, number, number]; color: string; scale?: number }) {
-  const meshRef = useRef<THREE.Mesh>(null);
+  const meshRef = useRef<<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
-
+  
   useFrame((state) => {
     if (meshRef.current) {
       meshRef.current.scale.setScalar(scale + Math.sin(state.clock.elapsedTime * 2 + position[0]) * 0.1);
@@ -48,25 +48,22 @@ function Connection({ start, end }: { start: [number, number, number]; end: [num
     return curve.getPoints(50);
   }, [start, end]);
 
-  const geometry = useMemo(() => {
-    const geo = new THREE.BufferGeometry().setFromPoints(points);
-    return geo;
+  const lineObj = useMemo(() => {
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const material = new THREE.LineBasicMaterial({ color: "#00F0FF", transparent: true, opacity: 0.3 });
+    return new THREE.Line(geometry, material);
   }, [points]);
 
-  return (
-    <line geometry={geometry}>
-      <lineBasicMaterial color="#00F0FF" transparent opacity={0.3} />
-    </line>
-  );
+  return <primitive object={lineObj} />;
 }
 
 function NeuralNetwork() {
-  const groupRef = useRef<THREE.Group>(null);
-
+  const groupRef = useRef<<THREE.Group>(null);
+  
   const neurons = useMemo(() => {
     const items: { position: [number, number, number]; color: string; scale: number }[] = [];
     const colors = ["#00F0FF", "#9D4EDD", "#00E676", "#FF1744"];
-
+    
     for (let i = 0; i < 80; i++) {
       items.push({
         position: [
@@ -118,9 +115,9 @@ function NeuralNetwork() {
 }
 
 function SpikeParticles() {
-  const particlesRef = useRef<THREE.Points>(null);
+  const particlesRef = useRef<<THREE.Points>(null);
   const count = 200;
-
+  
   const positions = useMemo(() => {
     const pos = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
