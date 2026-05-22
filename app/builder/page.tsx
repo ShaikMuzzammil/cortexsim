@@ -1,10 +1,9 @@
-export const dynamic = 'force-dynamic';
-
 "use client";
+
+export const dynamic = 'force-dynamic';
 
 import { useState, useCallback, useEffect, useRef, Suspense } from "react";
 import { useSession } from "next-auth/react";
-import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Brain,
@@ -34,9 +33,17 @@ const FlowCanvas = dynamicImport(() => import("@/components/Builder/FlowCanvas")
 
 function BuilderContent() {
   const { data: session } = useSession();
-  const searchParams = useSearchParams();
-  const experimentId = searchParams.get("id");
-  const isNew = searchParams.get("new") === "true";
+  
+  const [experimentId, setExperimentId] = useState<string | null>(null);
+  const [isNew, setIsNew] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      setExperimentId(params.get("id"));
+      setIsNew(params.get("new") === "true");
+    }
+  }, []);
 
   const [activeTab, setActiveTab] = useState<"raster" | "voltage" | "stats">("raster");
   const [show3D, setShow3D] = useState(true);
