@@ -16,7 +16,6 @@ export async function sendContactEmail({
 }) {
   const recipient = process.env.CONTACT_EMAIL || "host@cortexsim.io";
 
-  // If no Resend API key, log to console (for development) and return success
   if (!resend) {
     console.log("[Contact Form - No Resend Key]");
     console.log(`From: ${name} <${email}>`);
@@ -29,7 +28,7 @@ export async function sendContactEmail({
   const { data, error } = await resend.emails.send({
     from: "CortexSim <onboarding@resend.dev>",
     to: [recipient],
-    replyTo: email,
+    reply_to: email,
     subject: `Contact Form: ${subject}`,
     html: `
       <div style="background:#0A0A0F;color:#E0E0E0;font-family:Inter,sans-serif;padding:40px;max-width:600px;margin:0 auto;border:1px solid #00F0FF;border-radius:12px;">
@@ -67,7 +66,7 @@ export async function sendNewsletterEmail(email: string) {
     html: `
       <div style="background:#0A0A0F;color:#E0E0E0;font-family:Inter,sans-serif;padding:40px;max-width:600px;margin:0 auto;border:1px solid #00F0FF;border-radius:12px;">
         <h1 style="font-family:Orbitron,sans-serif;color:#00F0FF;text-transform:uppercase;">Welcome to the Neural Network</h1>
-        <p style="line-height:1.6;margin:24px 0;">Thank you for subscribing to CortexSim updates. You'll receive the latest news on spiking neural networks, simulation features, and neuroscience research.</p>
+        <p style="line-height:1.6;margin:24px 0;">Thank you for subscribing to CortexSim updates.</p>
         <div style="text-align:center;margin-top:32px;">
           <a href="https://cortexsim.vercel.app" style="display:inline-block;padding:12px 24px;background:#00F0FF;color:#0A0A0F;text-decoration:none;font-family:Orbitron,sans-serif;text-transform:uppercase;border-radius:8px;font-weight:bold;">Visit CortexSim</a>
         </div>
