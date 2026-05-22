@@ -6,7 +6,7 @@ import { OrbitControls, Stars } from "@react-three/drei";
 import * as THREE from "three";
 
 function Neuron({ position, color, scale = 1 }: { position: [number, number, number]; color: string; scale?: number }) {
-  const meshRef = useRef<THREE.Mesh>(null);
+  const meshRef = useRef<any>(null);
   const [hovered, setHovered] = useState(false);
   
   useFrame((state) => {
@@ -58,7 +58,7 @@ function Connection({ start, end }: { start: [number, number, number]; end: [num
 }
 
 function NeuralNetwork() {
-  const groupRef = useRef<THREE.Group>(null);
+  const groupRef = useRef<any>(null);
   
   const neurons = useMemo(() => {
     const items: { position: [number, number, number]; color: string; scale: number }[] = [];
@@ -115,7 +115,7 @@ function NeuralNetwork() {
 }
 
 function SpikeParticles() {
-  const particlesRef = useRef<THREE.Points>(null);
+  const particlesRef = useRef<any>(null);
   const count = 200;
   
   const positions = useMemo(() => {
