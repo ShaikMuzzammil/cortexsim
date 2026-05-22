@@ -28,7 +28,7 @@ const nodeTypes = [
 ];
 
 export default function NodePalette() {
-  const onDragStart = (event: React.DragEvent, nodeType: string) => {
+  const onDragStart = (event: React.DragEvent<HTMLDivElement>, nodeType: string) => {
     event.dataTransfer.setData("application/reactflow", nodeType);
     event.dataTransfer.effectAllowed = "move";
   };
@@ -47,7 +47,7 @@ export default function NodePalette() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: index * 0.1 }}
             draggable
-            onDragStart={(e) => onDragStart(e, node.type)}
+            onDragStart={(e: React.DragEvent<HTMLDivElement>) => onDragStart(e, node.type)}
             className="flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 border border-transparent hover:border-neon/20 cursor-grab active:cursor-grabbing transition-all group"
           >
             <GripVertical className="w-3 h-3 text-lavenderGray opacity-0 group-hover:opacity-100" />
