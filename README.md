@@ -244,4 +244,172 @@ git push origin main
 # 4. Deploy!
 ```
 
-For detailed deployment instructions, see [VERCEL_DEPLOY.md](./VERCEL_DEPLOY.md).
+# 🚀 VERCEL DEPLOY — STEP BY STEP (Copy & Paste)
+
+## YOU ONLY NEED TO DO THIS ONCE
+
+### Step 1: Push to GitHub
+
+Open terminal in project folder:
+
+```bash
+cd cortexsim
+git init
+git add .
+git commit -m "first commit"
+git branch -M main
+git remote add origin https://github.com/YOUR_USERNAME/cortexsim.git
+git push -u origin main
+```
+
+Replace `YOUR_USERNAME` with your actual GitHub username.
+
+---
+
+### Step 2: Connect to Vercel
+
+1. Go to https://vercel.com
+2. Sign in with **GitHub**
+3. Click **"Add New Project"**
+4. Find `cortexsim` repo → Click **Import**
+5. Vercel auto-detects Next.js — **DO NOT CHANGE ANYTHING**
+6. Click **Deploy**
+
+---
+
+### Step 3: Add Environment Variables (CRITICAL)
+
+After first deploy fails (it will), go to:
+
+**Vercel Dashboard** → Your Project → **Settings** → **Environment Variables**
+
+Click **Add** 3 times:
+
+| Name | Value |
+|------|-------|
+| `DATABASE_URL` | `file:./dev.db` |
+| `NEXTAUTH_SECRET` | `supersecretkey123456789` |
+| `NEXTAUTH_URL` | `https://cortexsim.vercel.app` |
+
+> **IMPORTANT**: Replace `cortexsim.vercel.app` with your actual URL from Vercel.
+
+Click **Save** → Go to **Deployments** tab → Click the 3 dots on latest → **Redeploy**
+
+---
+
+### Step 4: Done!
+
+Your app is live. Test these URLs:
+- `https://YOUR-URL.vercel.app/` — Home
+- `https://YOUR-URL.vercel.app/builder` — Builder
+- `https://YOUR-URL.vercel.app/login` — Login
+- `https://YOUR-URL.vercel.app/dashboard` — Dashboard (needs login)
+
+---
+
+## ⚠️ WHAT WAS FIXED
+
+| Problem | Fix |
+|---------|-----|
+| `npm run vercel-build` missing | Added `"vercel-build": "prisma generate && next build"` to package.json |
+| `prisma migrate deploy` fails | Removed it — SQLite doesn't need deploy, just `generate` |
+| Build crashes | Simplified scripts, no complex commands |
+
+---
+
+## 🔧 IF BUILD STILL FAILS
+
+### Option A: Use Vercel's Default Build
+
+In Vercel Dashboard → Project Settings → **Build & Output Settings**
+
+Change **Build Command** to exactly this:
+```
+next build
+```
+
+Change **Output Directory** to:
+```
+.next
+```
+
+Click **Save** → Redeploy
+
+### Option B: No Database (Simplest)
+
+If you want ZERO database setup, the app works with just:
+
+| Variable | Value |
+|----------|-------|
+| `NEXTAUTH_SECRET` | `anyrandomstring123` |
+| `NEXTAUTH_URL` | `https://your-app.vercel.app` |
+
+No `DATABASE_URL` needed. The builder and all pages work. Only "Save Experiment" needs login.
+
+---
+
+## 📦 PACKAGE.JSON SCRIPTS (Already Fixed)
+
+```json
+{
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "postinstall": "prisma generate",
+    "vercel-build": "prisma generate && next build"
+  }
+}
+```
+
+---
+
+## ❓ COMMON ERRORS & FIXES
+
+### "Cannot find module '@prisma/client'"
+**Fix**: `postinstall` script runs `prisma generate` automatically. If it fails, add this to Vercel Build Command:
+```
+npx prisma generate && next build
+```
+
+### "Database not found"
+**Fix**: SQLite is ephemeral on Vercel. For production, switch to PostgreSQL (free on neon.tech). Or use the app without database — builder works fine.
+
+### "NEXTAUTH_SECRET missing"
+**Fix**: Add it in Environment Variables. Any random string works.
+
+---
+
+## 🎯 MINIMUM VIABLE DEPLOY
+
+If you want the absolute simplest deploy with NO database headaches:
+
+1. Delete `prisma/` folder
+2. Delete `lib/prisma.ts`
+3. Delete `lib/auth.ts`
+4. Delete `middleware.ts`
+5. Delete `app/api/` folder
+6. Delete `app/dashboard/` folder
+7. Keep only: `app/page.tsx`, `app/builder/page.tsx`, `app/contact/page.tsx`, `app/docs/page.tsx`, `app/login/page.tsx`, `app/signup/page.tsx`
+8. Update `package.json` — remove `prisma`, `@prisma/client`, `@auth/prisma-adapter`, `next-auth`, `bcryptjs`
+9. Push to GitHub
+10. Deploy to Vercel — **zero env vars needed**
+
+The builder, simulation, 3D view, charts, contact form all work. Just no user accounts.
+
+---
+
+## 📧 EMAIL SETUP (Optional)
+
+Contact form works without email. To enable real emails:
+
+1. Go to https://resend.com → Sign up (free)
+2. Get API key
+3. Add to Vercel env vars:
+   - `RESEND_API_KEY` = `re_xxxxxxxxx`
+   - `CONTACT_EMAIL` = `your@email.com`
+4. Redeploy
+
+Done. No code changes.
+
