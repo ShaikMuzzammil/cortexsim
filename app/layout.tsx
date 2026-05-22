@@ -5,8 +5,6 @@ import { Providers } from "./providers";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import CustomCursor from "@/components/CustomCursor";
-import { Analytics } from "@vercel/analytics/react";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const orbitron = Orbitron({ subsets: ["latin"], variable: "--font-orbitron" });
@@ -40,8 +38,6 @@ export default function RootLayout({
           </main>
           <Footer />
         </Providers>
-        <Analytics />
-        <SpeedInsights />
       </body>
     </html>
   );
