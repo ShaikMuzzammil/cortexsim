@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CortexSim Pro — Real-time Spiking Neural Network Simulator</title>
+  <meta name="description" content="CortexSim Pro is a real-time, in-browser spiking neural network simulator with 3D visualization, live analytics, an AI copilot, and reproducible code export. Runs entirely client-side." />
+  <meta name="theme-color" content="#05060f" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./src/assets/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;850&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./src/css/styles.css" />
+  <meta property="og:title" content="CortexSim Pro — Spiking Neural Network Simulator" />
+  <meta property="og:description" content="Simulate, visualize and analyze biological neural networks in your browser." />
+  <meta property="og:type" content="website" />
+</head>
+<body class="landing">
+  <canvas id="bg-canvas"></canvas>
+  <div class="landing-overlay">
+    <nav class="nav">
+      <div class="brand"><span class="logo"></span> CortexSim<span style="color:var(--accent-2)">Pro</span></div>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="./docs/ARCHITECTURE.md">Architecture</a>
+        <a href="./docs/ROADMAP.md">Roadmap</a>
+        <a href="https://github.com/" id="ghLink" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </nav>
+
+    <header class="hero">
+      <span class="badge"><span class="dot"></span> Runs 100% in your browser — no install, no server</span>
+      <h1>Simulate the Brain.<br />In Real Time.</h1>
+      <p class="sub">CortexSim Pro is a real-time spiking neural network laboratory — biophysical neuron models, sparse connectomes, synaptic plasticity, GPU-instanced 3D visualization, live analytics, an AI copilot, and one-click reproducible code export.</p>
+      <div class="cta-row">
+        <a class="btn big" href="./app.html">▶ Launch Simulator <span class="arrow">→</span></a>
+        <a class="btn secondary big" href="./app.html?preset=gamma">⚡ Try Gamma Demo</a>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="num" id="s1">3</div><div class="lbl">Neuron models (LIF / Izhikevich / AdEx)</div></div>
+        <div class="stat"><div class="num">7</div><div class="lbl">Scientific presets</div></div>
+        <div class="stat"><div class="num">60fps</div><div class="lbl">Real-time 3D rendering</div></div>
+        <div class="stat"><div class="num">0</div><div class="lbl">Backend servers required</div></div>
+      </div>
+    </header>
+
+    <section class="features" id="features">
+      <h2>A research-grade simulator, in a browser tab</h2>
+      <p class="lead">Everything below is implemented and working in this build. Advanced research modules are scaffolded with a clear roadmap.</p>
+      <div class="feature-grid">
+        <div class="feature-card"><div class="ic">🧠</div><h3>Biophysical neuron models</h3><p>Leaky integrate-and-fire, Izhikevich, and adaptive-exponential (AdEx) neurons with conductance-based synapses and conduction delays.</p><span class="tag">Working</span></div>
+        <div class="feature-card"><div class="ic">🌐</div><h3>GPU-instanced 3D view</h3><p>Watch thousands of neurons spike in real time with Three.js instanced rendering, orbit controls, and multiple spatial layouts.</p><span class="tag">Working</span></div>
+        <div class="feature-card"><div class="ic">📊</div><h3>Live analytics</h3><p>Population firing rate, synchrony index, CV(ISI), and autocorrelation-based oscillation detection with an automatic regime classifier.</p><span class="tag">Working</span></div>
+        <div class="feature-card"><div class="ic">🔬</div><h3>Synaptic plasticity</h3><p>Pair-based spike-timing-dependent plasticity (STDP) on excitatory synapses you can toggle live and watch reorganize.</p><span class="tag">Working</span></div>
+        <div class="feature-card"><div class="ic">💡</div><h3>Closed-loop optogenetics</h3><p>Inject virtual light through ChR2, ChrimsonR, eNpHR or ArchT opsins with realistic saturating activation curves.</p><span class="tag">Working</span></div>
+        <div class="feature-card"><div class="ic">🤖</div><h3>AI Copilot + voice</h3><p>Control experiments in plain English — “produce 40 Hz gamma”, “increase inhibition” — fully offline, with optional voice input.</p><span class="tag">Working</span></div>
+        <div class="feature-card"><div class="ic">🐍</div><h3>Reproducible code export</h3><p>Export the current network as a runnable Brian2 Python script, a JSON spec, spike-train CSV, and metrics CSV.</p><span class="tag">Working</span></div>
+        <div class="feature-card"><div class="ic">🖍️</div><h3>Connectome toolbox</h3><p>Graph-theory metrics, degree distributions, hub-targeted lesion studies, and mutual-information between spike trains.</p><span class="tag">Working</span></div>
+        <div class="feature-card"><div class="ic">♿</div><h3>Accessible by design</h3><p>Colorblind-safe palettes (protan/deutan/tritan), keyboard shortcuts, voice control, and responsive layout.</p><span class="tag">Working</span></div>
+        <div class="feature-card"><div class="ic">🥽</div><h3>WebXR / VR</h3><p>Step inside your network in VR on supported headsets via WebXR — auto-enabled when a device is detected.</p><span class="tag road">Roadmap-ready</span></div>
+        <div class="feature-card"><div class="ic">⚡</div><h3>WebGPU compute</h3><p>Architecture is GPU-ready: the dependency-free engine core is structured for a WebGPU/WASM backend for 100k+ neurons.</p><span class="tag road">Roadmap</span></div>
+        <div class="feature-card"><div class="ic">📦</div><h3>Neuromorphic export</h3><p>Planned Loihi 2 / SpiNNaker / FPGA export paths and pJ/spike energy estimation.</p><span class="tag road">Roadmap</span></div>
+        <div class="feature-card"><div class="ic">📥</div><h3>Real-data pipeline</h3><p>Planned import of Neuropixels / Phy / KiloSort outputs and patch-clamp model fitting.</p><span class="tag road">Roadmap</span></div>
+      </div>
+      <div style="text-align:center;margin-top:46px">
+        <a class="btn big" href="./app.html">Open the lab <span class="arrow">→</span></a>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <p>CortexSim Pro · MIT License · Built for scientists, students &amp; the curious.<br/>This is an educational/research simulator and is not a medical device.</p>
+    </footer>
+  </div>
+
+  <script type="module" src="./src/js/landing.js"></script>
+</body>
+</html>

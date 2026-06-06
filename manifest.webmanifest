@@ -1,0 +1,17 @@
+{
+  "name": "CortexSim Pro",
+  "short_name": "CortexSim",
+  "description": "Real-time spiking neural network simulator in your browser.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#05060f",
+  "theme_color": "#05060f",
+  "icons": [
+    {
+      "src": "./src/assets/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
