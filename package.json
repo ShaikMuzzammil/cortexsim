@@ -1,31 +1,28 @@
 {
   "name": "cortexsim-pro",
-  "version": "1.0.0",
-  "description": "Real-time, in-browser spiking neural network simulator with 3D visualization, live analytics, an AI copilot, and reproducible code export. Zero-build, fully client-side.",
+  "private": true,
+  "version": "4.0.0",
   "type": "module",
+  "description": "CortexSim Pro — real-time spiking neural network platform",
   "scripts": {
-    "dev": "npx --yes serve . -l 5173",
-    "start": "npx --yes serve . -l 5173",
-    "build": "echo \"CortexSim Pro is a static site - no build step needed\"",
-    "test": "node tests/engine.test.mjs",
-    "verify": "node scripts/verify.mjs",
-    "format": "npx --yes prettier --write ."
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -b --noEmit"
   },
-  "keywords": [
-    "spiking-neural-network",
-    "snn",
-    "computational-neuroscience",
-    "simulation",
-    "three.js",
-    "webgl",
-    "izhikevich",
-    "lif",
-    "stdp",
-    "brian2",
-    "neuroscience"
-  ],
-  "author": "",
-  "license": "MIT",
-  "engines": { "node": ">=18" },
-  "repository": { "type": "git", "url": "" }
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.15",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11"
+  }
 }
