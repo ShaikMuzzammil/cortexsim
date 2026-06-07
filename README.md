@@ -33,6 +33,24 @@ CortexSim Pro simulates thousands of biologically realistic **Izhikevich (2003)*
 - **6 one-click regimes**: asynchronous, synchronous, gamma, bursting, seizure, quiescent.
 - Live metrics: time, mean rate, excitatory & inhibitory rates, active neurons, synchrony index, dominant frequency, total spikes, synapses, and FPS.
 
+## 📖 Learn while you simulate
+
+Five flagship tools, each one a self-contained lesson. On the landing page and inside the live platform, every feature has an **expandable guide** that explains three things:
+
+1. **How it works** — the actual mechanism under the hood.
+2. **What you learn** — the neuroscience / dynamics takeaway.
+3. **Engineering & OS parallel** — the computer-science concept the same idea maps onto, so the knowledge transfers:
+
+| Feature | Engineering / OS parallel |
+| --- | --- |
+| 3D Network & wiring | Sparse graphs (CSR), adjacency lists, cache locality, scheduler ready-queues |
+| Spike raster | Event-driven systems, distributed tracing, interrupt timelines, ring/log buffers (dmesg) |
+| Population rate | Control systems, PID loops, token-bucket rate limiting, backpressure |
+| FFT power spectrum | Digital signal processing, Cooley–Tukey FFT, sampling/Nyquist, clock-jitter analysis |
+| Neuron probe | Finite state machines, phase-space stability, watchdog timers, debounce |
+
+Each guide ends with a concrete "try it" experiment and links to authoritative references.
+
 ## 📥 Export & print
 
 - **PNG** — high-resolution snapshot of the 3D network.

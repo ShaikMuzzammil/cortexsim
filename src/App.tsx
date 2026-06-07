@@ -5,6 +5,7 @@ import ProgressBar from "./components/ProgressBar";
 import Nav from "./components/Nav";
 import Hero from "./components/landing/Hero";
 import Features from "./components/landing/Features";
+import LearnDeepDive from "./components/landing/LearnDeepDive";
 import Science from "./components/landing/Science";
 import Footer from "./components/Footer";
 import PlatformApp from "./components/platform/PlatformApp";
@@ -30,6 +31,7 @@ export default function App() {
       <main className="relative z-10">
         <Hero />
         <Features />
+        <LearnDeepDive />
         <Science />
         <Footer />
       </main>

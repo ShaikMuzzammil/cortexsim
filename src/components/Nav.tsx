@@ -4,6 +4,7 @@ import { useSim } from "../store/useSim";
 const LINKS = [
   { id: "top", label: "Home" },
   { id: "features", label: "Features" },
+  { id: "learn", label: "Learn" },
   { id: "science", label: "Science" },
 ];
 

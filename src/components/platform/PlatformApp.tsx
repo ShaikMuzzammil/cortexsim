@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import { useSim } from "../../store/useSim";
 import Platform from "./Platform";
+import LearnDeepDive from "../landing/LearnDeepDive";
 
 const appBg: CSSProperties = {
   background:
@@ -46,6 +47,7 @@ export default function PlatformApp() {
         </div>
       </header>
       <Platform />
+      <LearnDeepDive variant="platform" />
     </div>
   );
 }
