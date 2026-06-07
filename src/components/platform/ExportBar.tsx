@@ -6,7 +6,7 @@ interface Props {
 }
 
 const BTN =
-  "hot glass flex-1 rounded-xl px-3 py-2 text-xs font-semibold text-white/80 transition-colors hover:text-white hover:border-white/25";
+  "hot glass flex-1 rounded-xl px-3 py-2 text-sm font-medium text-white/80 transition-colors hover:text-white";
 
 export default function ExportBar({ onPng, onCsv, onJson, onPdf }: Props) {
   return (
@@ -21,7 +21,7 @@ export default function ExportBar({ onPng, onCsv, onJson, onPdf }: Props) {
         ⬇ JSON
       </button>
       <button className={BTN} onClick={onPdf}>
-        ⎙ PDF report
+        🖨 PDF report
       </button>
     </div>
   );

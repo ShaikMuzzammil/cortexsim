@@ -4,7 +4,6 @@ import { useSim } from "../store/useSim";
 const LINKS = [
   { id: "top", label: "Home" },
   { id: "features", label: "Features" },
-  { id: "platform", label: "Platform" },
   { id: "science", label: "Science" },
 ];
 
@@ -15,13 +14,6 @@ function scrollTo(id: string) {
 export default function Nav() {
   const active = useScrollSpy(LINKS.map((l) => l.id));
   const launch = useSim((s) => s.launch);
-  const setRunning = useSim((s) => s.setRunning);
-
-  const goPlatform = () => {
-    launch();
-    setRunning(true);
-    scrollTo("platform");
-  };
 
   return (
     <header className="fixed inset-x-0 top-0 z-[80] flex justify-center px-4 pt-4">
@@ -51,10 +43,10 @@ export default function Nav() {
           ))}
         </div>
         <button
-          onClick={goPlatform}
+          onClick={launch}
           className="glow-btn rounded-xl px-4 py-1.5 text-sm"
         >
-          Launch
+          Launch Platform
         </button>
       </nav>
     </header>

@@ -14,7 +14,11 @@ interface Props {
   viewRef: RefObject<View>;
 }
 
-/** Interactive 3D neuron cloud. Drag to rotate, wheel/pinch to zoom. */
+/**
+ * Hosts the 3D network canvas and handles drag-to-rotate / wheel-to-zoom.
+ * The actual rendering is performed by the Platform render loop, which draws
+ * into this canvas using the shared view state.
+ */
 export default function Network3D({ canvasRef, viewRef }: Props) {
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -29,31 +33,27 @@ export default function Network3D({ canvasRef, viewRef }: Props) {
     };
     const onMove = (e: PointerEvent) => {
       if (!view.dragging) return;
-      view.rotY += (e.clientX - view.lastX) * 0.008;
-      view.rotX += (e.clientY - view.lastY) * 0.008;
+      view.rotY += (e.clientX - view.lastX) * 0.01;
+      view.rotX += (e.clientY - view.lastY) * 0.01;
       view.lastX = e.clientX;
       view.lastY = e.clientY;
     };
-    const onUp = (e: PointerEvent) => {
+    const onUp = () => {
       view.dragging = false;
-      try {
-        canvas.releasePointerCapture(e.pointerId);
-      } catch {
-        /* ignore */
-      }
     };
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      view.zoom = Math.min(3, Math.max(0.4, view.zoom - e.deltaY * 0.0012));
+      view.zoom *= e.deltaY > 0 ? 0.93 : 1.07;
+      view.zoom = Math.max(0.4, Math.min(3, view.zoom));
     };
 
     canvas.addEventListener("pointerdown", onDown);
-    canvas.addEventListener("pointermove", onMove);
+    window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
     canvas.addEventListener("wheel", onWheel, { passive: false });
     return () => {
       canvas.removeEventListener("pointerdown", onDown);
-      canvas.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
       canvas.removeEventListener("wheel", onWheel);
     };
@@ -62,7 +62,8 @@ export default function Network3D({ canvasRef, viewRef }: Props) {
   return (
     <canvas
       ref={canvasRef}
-      className="h-full w-full cursor-grab touch-none rounded-2xl active:cursor-grabbing"
+      className="hot h-full w-full touch-none rounded-2xl"
+      aria-label="3D neuron network"
     />
   );
 }

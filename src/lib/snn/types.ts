@@ -28,17 +28,36 @@ export interface SpikeEvent {
 
 export interface StepResult {
   fired: number;
+  firedExc: number;
+  firedInh: number;
   spikes: SpikeEvent[];
 }
 
 export interface Metrics {
   timeMs: number;
   rateHz: number;
+  rateExc: number;
+  rateInh: number;
   active: number;
   synchrony: number;
+  domHz: number;
   totalSpikes: number;
   synapses: number;
+  fps: number;
 }
+
+export const EMPTY_METRICS: Metrics = {
+  timeMs: 0,
+  rateHz: 0,
+  rateExc: 0,
+  rateInh: 0,
+  active: 0,
+  synchrony: 0,
+  domHz: 0,
+  totalSpikes: 0,
+  synapses: 0,
+  fps: 0,
+};
 
 export const DEFAULT_CONFIG: SimConfig = {
   N: 1000,

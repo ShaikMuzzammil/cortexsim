@@ -13,13 +13,6 @@ const STATS = [
 
 export default function Hero() {
   const launch = useSim((s) => s.launch);
-  const setRunning = useSim((s) => s.setRunning);
-
-  const start = () => {
-    launch();
-    setRunning(true);
-    scrollTo("platform");
-  };
 
   return (
     <section
@@ -43,7 +36,7 @@ export default function Hero() {
         </p>
         <div className="mt-9 flex flex-col items-center justify-center gap-4 sm:flex-row">
           <button
-            onClick={start}
+            onClick={launch}
             className="glow-btn rounded-2xl px-8 py-4 text-base"
           >
             Start the Platform →

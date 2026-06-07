@@ -7,29 +7,30 @@ interface Node {
   vy: number;
 }
 
-/** Mouse-reactive particle neural-network field behind the hero. */
+/** A mouse-reactive particle network evoking a living neural field. */
 export default function HeroCanvas() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
+    const canvas = ref.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d")!;
-    let raf = 0;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
     let w = 0;
     let h = 0;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    let dpr = Math.min(window.devicePixelRatio || 1, 2);
     const mouse = { x: -9999, y: -9999 };
     let nodes: Node[] = [];
 
     const resize = () => {
-      const rect = canvas.getBoundingClientRect();
-      w = rect.width;
-      h = rect.height;
+      w = canvas.clientWidth;
+      h = canvas.clientHeight;
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = w * dpr;
       canvas.height = h * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const count = Math.round((w * h) / 13000);
+      const count = Math.round((w * h) / 14000);
       nodes = Array.from({ length: count }, () => ({
         x: Math.random() * w,
         y: Math.random() * h,
@@ -39,15 +40,16 @@ export default function HeroCanvas() {
     };
 
     const onMove = (e: MouseEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      mouse.x = e.clientX - rect.left;
-      mouse.y = e.clientY - rect.top;
+      const r = canvas.getBoundingClientRect();
+      mouse.x = e.clientX - r.left;
+      mouse.y = e.clientY - r.top;
     };
     const onLeave = () => {
       mouse.x = -9999;
       mouse.y = -9999;
     };
 
+    let raf = 0;
     const draw = () => {
       ctx.clearRect(0, 0, w, h);
       for (const n of nodes) {
@@ -58,10 +60,10 @@ export default function HeroCanvas() {
         const dx = n.x - mouse.x;
         const dy = n.y - mouse.y;
         const d2 = dx * dx + dy * dy;
-        if (d2 < 26000) {
-          const f = (1 - d2 / 26000) * 0.9;
-          n.x += (dx / Math.sqrt(d2 + 1)) * f;
-          n.y += (dy / Math.sqrt(d2 + 1)) * f;
+        if (d2 < 14000) {
+          const f = (14000 - d2) / 14000;
+          n.x += (dx / Math.sqrt(d2 + 1)) * f * 2;
+          n.y += (dy / Math.sqrt(d2 + 1)) * f * 2;
         }
       }
       for (let i = 0; i < nodes.length; i++) {
@@ -70,10 +72,9 @@ export default function HeroCanvas() {
           const b = nodes[j];
           const dx = a.x - b.x;
           const dy = a.y - b.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 120) {
-            const alpha = (1 - dist / 120) * 0.5;
-            ctx.strokeStyle = `rgba(120,180,255,${alpha})`;
+          const d2 = dx * dx + dy * dy;
+          if (d2 < 11000) {
+            ctx.strokeStyle = `rgba(34,211,238,${0.18 * (1 - d2 / 11000)})`;
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(a.x, a.y);
@@ -83,9 +84,9 @@ export default function HeroCanvas() {
         }
       }
       for (const n of nodes) {
-        ctx.fillStyle = "rgba(150,210,255,0.9)";
+        ctx.fillStyle = "rgba(168,85,247,0.9)";
         ctx.beginPath();
-        ctx.arc(n.x, n.y, 1.8, 0, Math.PI * 2);
+        ctx.arc(n.x, n.y, 1.6, 0, Math.PI * 2);
         ctx.fill();
       }
       raf = requestAnimationFrame(draw);
@@ -104,5 +105,11 @@ export default function HeroCanvas() {
     };
   }, []);
 
-  return <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />;
+  return (
+    <canvas
+      ref={ref}
+      className="absolute inset-0 h-full w-full opacity-70"
+      aria-hidden="true"
+    />
+  );
 }

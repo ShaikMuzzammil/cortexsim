@@ -1,5 +1,10 @@
 import { create } from "zustand";
-import { DEFAULT_CONFIG, type Metrics, type SimConfig } from "../lib/snn/types";
+import {
+  DEFAULT_CONFIG,
+  EMPTY_METRICS,
+  type Metrics,
+  type SimConfig,
+} from "../lib/snn/types";
 
 interface SimState {
   config: SimConfig;
@@ -7,6 +12,13 @@ interface SimState {
   metrics: Metrics;
   /** bumped to force the engine to rebuild from current config */
   rebuildToken: number;
+  /** bumped to advance exactly one frame while paused */
+  stepToken: number;
+  /** bumped to inject a stimulus pulse */
+  stimToken: number;
+  /** index of the probed neuron (voltage / phase-plane) */
+  probe: number;
+  /** whether the full-screen platform app is open */
   launched: boolean;
 
   setConfig: (patch: Partial<SimConfig>) => void;
@@ -14,8 +26,12 @@ interface SimState {
   toggleRunning: () => void;
   setRunning: (running: boolean) => void;
   reset: () => void;
+  stepOnce: () => void;
+  injectStimulus: () => void;
+  setProbe: (i: number) => void;
   setMetrics: (m: Metrics) => void;
   launch: () => void;
+  goHome: () => void;
 }
 
 const STRUCTURAL_KEYS: (keyof SimConfig)[] = [
@@ -32,14 +48,10 @@ export const useSim = create<SimState>((set) => ({
   running: true,
   launched: false,
   rebuildToken: 0,
-  metrics: {
-    timeMs: 0,
-    rateHz: 0,
-    active: 0,
-    synchrony: 0,
-    totalSpikes: 0,
-    synapses: 0,
-  },
+  stepToken: 0,
+  stimToken: 0,
+  probe: 0,
+  metrics: { ...EMPTY_METRICS },
 
   setConfig: (patch) =>
     set((s) => {
@@ -63,6 +75,10 @@ export const useSim = create<SimState>((set) => ({
   setRunning: (running) => set({ running }),
   reset: () =>
     set((s) => ({ rebuildToken: s.rebuildToken + 1, running: true })),
+  stepOnce: () => set((s) => ({ stepToken: s.stepToken + 1, running: false })),
+  injectStimulus: () => set((s) => ({ stimToken: s.stimToken + 1 })),
+  setProbe: (probe) => set({ probe }),
   setMetrics: (metrics) => set({ metrics }),
-  launch: () => set({ launched: true }),
+  launch: () => set({ launched: true, running: true }),
+  goHome: () => set({ launched: false }),
 }));

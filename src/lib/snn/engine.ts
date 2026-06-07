@@ -39,6 +39,8 @@ export class SNN {
 
   /** last spike time (ms) per neuron, for smooth visual fade */
   readonly last: Float32Array;
+  /** lifetime spike count per neuron (activity heatmap) */
+  readonly counts: Uint32Array;
   /** 3D unit-sphere positions, length N*3 */
   readonly pos: Float32Array;
   readonly exc: Uint8Array;
@@ -46,6 +48,11 @@ export class SNN {
   /** elapsed model time in ms */
   timeMs = 0;
   totalSpikes = 0;
+
+  private driveExc: number;
+  private driveInh: number;
+  private pendingStim = 0;
+  private pendingStimFrac = 0;
 
   constructor(cfg: SimConfig) {
     const N = Math.max(2, Math.floor(cfg.N));
@@ -62,6 +69,7 @@ export class SNN {
     this.u = new Float32Array(N);
     this.I = new Float32Array(N);
     this.last = new Float32Array(N).fill(-1e9);
+    this.counts = new Uint32Array(N);
     this.pos = new Float32Array(N * 3);
     this.exc = new Uint8Array(N);
 
@@ -114,35 +122,38 @@ export class SNN {
     this.driveInh = 2 * cfg.drive;
   }
 
-  private driveExc: number;
-  private driveInh: number;
-
   setDrive(drive: number) {
     this.driveExc = 5 * drive;
     this.driveInh = 2 * drive;
   }
 
+  /** Queue a one-shot current pulse delivered to a random subset next step. */
+  stimulate(amplitude: number, fraction: number) {
+    this.pendingStim = amplitude;
+    this.pendingStimFrac = fraction;
+  }
+
   private applyExcModel(i: number, model: ModelType, re: number) {
     switch (model) {
-      case "ib": // intrinsically bursting
+      case "ib":
         this.a[i] = 0.02;
         this.b[i] = 0.2;
         this.c[i] = -55;
         this.d[i] = 4;
         break;
-      case "ch": // chattering
+      case "ch":
         this.a[i] = 0.02;
         this.b[i] = 0.2;
         this.c[i] = -50;
         this.d[i] = 2;
         break;
-      case "fs": // fast spiking excitatory variant
+      case "fs":
         this.a[i] = 0.1;
         this.b[i] = 0.2;
         this.c[i] = -65;
         this.d[i] = 2;
         break;
-      case "rs": // regular spiking (default)
+      case "rs":
       default:
         this.a[i] = 0.02;
         this.b[i] = 0.2;
@@ -154,13 +165,25 @@ export class SNN {
 
   /** Advance the network by 1 ms (two 0.5 ms substeps). */
   step(): StepResult {
-    const { N, Ne, a, b, c, d, v, u, I, last, rowPtr, colIdx, weight } = this;
+    const { N, Ne, a, b, c, d, v, u, I, last, counts, rowPtr, colIdx, weight } =
+      this;
     const spikes: SpikeEvent[] = [];
     let fired = 0;
+    let firedExc = 0;
+    let firedInh = 0;
 
     // thalamic / background input
     for (let i = 0; i < N; i++) {
       I[i] = (i < Ne ? this.driveExc : this.driveInh) * randn();
+    }
+
+    // optional one-shot stimulus pulse
+    if (this.pendingStim !== 0) {
+      for (let i = 0; i < N; i++) {
+        if (Math.random() < this.pendingStimFrac) I[i] += this.pendingStim;
+      }
+      this.pendingStim = 0;
+      this.pendingStimFrac = 0;
     }
 
     // detect spikes, reset, and deliver synaptic current
@@ -169,8 +192,12 @@ export class SNN {
         v[i] = c[i];
         u[i] += d[i];
         last[i] = this.timeMs;
+        counts[i]++;
         fired++;
-        spikes.push({ i, exc: i < Ne });
+        const isExc = i < Ne;
+        if (isExc) firedExc++;
+        else firedInh++;
+        spikes.push({ i, exc: isExc });
         const s = rowPtr[i];
         const e = rowPtr[i + 1];
         for (let k = s; k < e; k++) I[colIdx[k]] += weight[k];
@@ -189,11 +216,16 @@ export class SNN {
 
     this.timeMs += 1;
     this.totalSpikes += fired;
-    return { fired, spikes };
+    return { fired, firedExc, firedInh, spikes };
   }
 
-  /** Membrane potential snapshot (for optional probes). */
-  voltage(i: number): number {
+  /** Membrane potential of neuron i (mV). */
+  getV(i: number): number {
     return this.v[i];
+  }
+
+  /** Recovery variable of neuron i. */
+  getU(i: number): number {
+    return this.u[i];
   }
 }

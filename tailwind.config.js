@@ -5,7 +5,7 @@ export default {
     extend: {
       colors: {
         ink: "#05060a",
-        panel: "rgba(255,255,255,0.04)",
+        panel: "#0b0e16",
         brand: {
           cyan: "#22d3ee",
           violet: "#a855f7",
@@ -14,21 +14,20 @@ export default {
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
-        mono: ["ui-monospace", "SFMono-Regular", "monospace"],
-      },
-      animation: {
-        float: "float 6s ease-in-out infinite",
-        shimmer: "shimmer 3s linear infinite",
       },
       keyframes: {
+        shimmer: {
+          "0%, 100%": { backgroundPosition: "0% 50%" },
+          "50%": { backgroundPosition: "100% 50%" },
+        },
         float: {
-          "0%,100%": { transform: "translateY(0)" },
+          "0%, 100%": { transform: "translateY(0)" },
           "50%": { transform: "translateY(-12px)" },
         },
-        shimmer: {
-          "0%": { backgroundPosition: "0% 50%" },
-          "100%": { backgroundPosition: "200% 50%" },
-        },
+      },
+      animation: {
+        shimmer: "shimmer 6s ease infinite",
+        float: "float 7s ease-in-out infinite",
       },
     },
   },
