@@ -1,7 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "version": 2,
-  "name": "cortexsim-pro",
+  "framework": null,
+  "buildCommand": "echo 'CortexSim Pro is a static site - no build step needed'",
+  "installCommand": "echo 'no dependencies to install'",
+  "outputDirectory": ".",
   "cleanUrls": true,
   "trailingSlash": false,
   "headers": [
