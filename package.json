@@ -7,6 +7,7 @@
     "dev": "npx --yes serve . -l 5173",
     "start": "npx --yes serve . -l 5173",
     "test": "node tests/engine.test.mjs",
+    "verify": "node scripts/verify.mjs",
     "format": "npx --yes prettier --write ."
   },
   "keywords": [

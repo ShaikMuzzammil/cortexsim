@@ -6,7 +6,6 @@
 
 **Biophysical neuron models · GPU-instanced 3D visualization · live analytics · STDP plasticity · closed-loop optogenetics · an offline AI copilot · one-click reproducible code export — all running 100% client-side with zero backend.**
 
-[![CI](https://github.com/USER/cortexsim-pro/actions/workflows/ci.yml/badge.svg)](./.github/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-7b6bff.svg)](./LICENSE)
 ![Build](https://img.shields.io/badge/build-zero--build-41e0c8)
 ![PWA](https://img.shields.io/badge/PWA-offline--ready-5b8bff)
@@ -58,10 +57,12 @@ npx serve .            # then open http://localhost:3000
 
 Then open the URL and click **▶ Launch Simulator**.
 
-### Run the tests
+### Verify the build (offline, no CI needed)
 
 ```bash
-npm test               # node tests/engine.test.mjs
+npm run verify         # syntax-checks every module + runs the engine tests
+# or just the tests:
+npm test
 ```
 
 ## ☁️ Deploy to Vercel
@@ -133,8 +134,8 @@ cortexsim-pro/
 │        ├─ app.js                  # simulator controller (wires everything)
 │        └─ copilot.js              # offline NL command parser (+ LLM hook)
 ├─ tests/engine.test.mjs      # deterministic engine unit tests
-├─ docs/ARCHITECTURE.md  docs/ROADMAP.md
-└─ .github/workflows/ci.yml   # tests + syntax check on push
+├─ scripts/verify.mjs         # one-command local verification (syntax + tests)
+└─ docs/ARCHITECTURE.md  docs/ROADMAP.md
 ```
 
 ## 🔬 The science (brief)
