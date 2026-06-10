@@ -104,7 +104,7 @@ export default function Hero() {
         >
           CortexSim{" "}
           <span className="bg-gradient-to-r from-brand via-indigo-300 to-exc bg-clip-text text-transparent">
-            GODMODE
+            STUDIO
           </span>
         </motion.h1>
         <motion.p

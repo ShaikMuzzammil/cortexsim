@@ -9,7 +9,7 @@ export default function Footer() {
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 sm:flex-row">
         <div className="flex items-center gap-2 font-bold">
           <Brain className="text-brand" size={18} />
-          CortexSim GODMODE
+          CortexSim Studio
         </div>
         <p className="text-sm text-slate-500">
           Built with Next.js, TypeScript, Tailwind, Framer Motion and Three.js.

@@ -40,7 +40,7 @@ export default function DocsPage() {
       </Link>
       <h1 className="mb-2 text-4xl font-extrabold">Learn the science</h1>
       <p className="mb-10 text-slate-400">
-        A quick tour of the neuroscience powering CortexSim GODMODE.
+        A quick tour of the neuroscience powering CortexSim Studio.
       </p>
       <motion.div
         variants={stagger}

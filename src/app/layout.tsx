@@ -1,21 +1,23 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import Toaster from "@/components/learn/Toaster";
 
 export const metadata: Metadata = {
-  title: "CortexSim GODMODE - Spiking Neural Network Simulator",
+  title: "CortexSim Studio - Neural Dynamics Platform",
   description:
-    "A full-stack, real-time spiking neural network simulator with 3D visualization, live analytics, parameter sweeps, and editable dynamics. Built with Next.js, TypeScript, Tailwind, Framer Motion and Three.js.",
+    "CortexSim Studio is a full-stack, real-time spiking neural network platform: 3D visualization, live signal analysis, plasticity, parameter sweeps, editable dynamics and an interactive learning curriculum. Built with Next.js, TypeScript, Tailwind, Framer Motion and Three.js.",
   keywords: [
     "spiking neural network",
     "Izhikevich",
-    "neuroscience",
-    "simulation",
+    "computational neuroscience",
+    "simulation platform",
     "Next.js",
     "WebGL",
   ],
   openGraph: {
-    title: "CortexSim GODMODE",
-    description: "Real-time brain dynamics in your browser.",
+    title: "CortexSim Studio - Neural Dynamics Platform",
+    description:
+      "Real-time brain dynamics and an interactive neuroscience learning platform in your browser.",
     type: "website",
   },
 };
@@ -34,7 +36,10 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-screen antialiased">{children}</body>
+      <body className="min-h-screen antialiased">
+        {children}
+        <Toaster />
+      </body>
     </html>
   );
 }

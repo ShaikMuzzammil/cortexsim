@@ -1,8 +1,8 @@
 {
-  "name": "cortexsim-godmode",
+  "name": "cortexsim-cortexsim",
   "version": "6.0.0",
   "private": true,
-  "description": "CortexSim GODMODE - full-stack Next.js spiking neural network simulator",
+  "description": "CortexSim Studio - full-stack Next.js spiking neural network simulator",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

@@ -305,7 +305,7 @@ export default function SimulatorShell() {
             </Link>
             <div className="flex items-center gap-2 font-extrabold">
               <Brain className="text-brand" size={20} />
-              CortexSim <span className="text-brand">GODMODE</span>
+              CortexSim <span className="text-brand">STUDIO</span>
             </div>
           </div>
           <Transport

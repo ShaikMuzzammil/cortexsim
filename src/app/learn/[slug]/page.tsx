@@ -5,11 +5,13 @@ import { ArrowLeft, ArrowRight, Clock, CalendarDays } from "lucide-react";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import GuideRenderer from "@/components/learn/GuideRenderer";
+import ModuleWorkspace from "@/components/learn/ModuleWorkspace";
 import {
   getGuide,
   getAllGuideSlugs,
   getAdjacentGuides,
 } from "@/content/guides";
+import { getModuleMeta } from "@/content/modules";
 
 export function generateStaticParams() {
   return getAllGuideSlugs().map((slug) => ({ slug }));
@@ -30,6 +32,7 @@ export default function GuidePage({ params }: { params: { slug: string } }) {
   if (!guide) notFound();
 
   const { prev, next } = getAdjacentGuides(params.slug);
+  const meta = getModuleMeta(params.slug);
 
   return (
     <main className="min-h-screen bg-ink text-white">
@@ -60,12 +63,23 @@ export default function GuidePage({ params }: { params: { slug: string } }) {
               <CalendarDays size={13} />
               Updated {guide.updated}
             </span>
+            {meta ? (
+              <span className="rounded bg-warn/15 px-1.5 py-0.5 font-semibold text-warn">
+                +{meta.xp} XP
+              </span>
+            ) : null}
           </div>
         </div>
 
         <hr className="my-8 border-edge/60" />
 
         <GuideRenderer blocks={guide.blocks} />
+
+        {meta ? (
+          <div className="mt-12">
+            <ModuleWorkspace meta={meta} title={guide.title} />
+          </div>
+        ) : null}
 
         <nav className="mt-12 grid gap-4 sm:grid-cols-2">
           {prev ? (

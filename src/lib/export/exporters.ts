@@ -9,7 +9,7 @@ export function exportSpikesCsv(spikes: Spike[]) {
 
 export function exportStateJson(cfg: SimConfig, metrics: Metrics) {
   const payload = {
-    app: "CortexSim GODMODE",
+    app: "CortexSim Studio",
     version: "6.0.0",
     exportedAt: new Date().toISOString(),
     config: cfg,
@@ -42,7 +42,7 @@ export function exportReport(cfg: SimConfig, metrics: Metrics, notes: string) {
     "<style>body{font-family:Inter,sans-serif;padding:40px;color:#0b1020}" +
     "h1{color:#3b6ad8}table{border-collapse:collapse;width:100%;margin:16px 0}" +
     "td{border:1px solid #ccc;padding:6px 10px}</style></head><body>" +
-    "<h1>CortexSim GODMODE - Experiment Report</h1>" +
+    "<h1>CortexSim Studio - Experiment Report</h1>" +
     "<p>Generated " + new Date().toLocaleString() + "</p>" +
     "<h2>Configuration</h2><table>" + rows + "</table>" +
     "<h2>Metrics snapshot</h2><table>" + mrows + "</table>" +

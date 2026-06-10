@@ -1,4 +1,4 @@
-// Shared domain types for CortexSim GODMODE.
+// Shared domain types for CortexSim Studio.
 
 export type ModelName = "rs" | "ib" | "ch" | "fs" | "lts";
 export type TopologyName = "random" | "smallworld" | "scalefree" | "grid";

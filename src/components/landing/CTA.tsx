@@ -28,7 +28,7 @@ export default function CTA() {
           className="relative mt-8 inline-block"
         >
           <Link href="/simulator" className="btn-primary text-base">
-            <Rocket size={18} /> Launch CortexSim GODMODE
+            <Rocket size={18} /> Launch CortexSim Studio
           </Link>
         </motion.div>
       </motion.div>

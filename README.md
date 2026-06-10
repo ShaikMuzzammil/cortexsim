@@ -1,4 +1,4 @@
-# CortexSim GODMODE
+# CortexSim Studio
 
 A full-stack, real-time **spiking neural network simulator** that runs in the
 browser. Watch thousands of Izhikevich neurons fire on a 3D brain shell, sculpt
@@ -26,7 +26,7 @@ Built as a real production-grade app — not a single HTML file.
 ## Project structure
 
 ```
-cortexsim-godmode/
+cortexsim/
   src/
     app/
       layout.tsx            Root layout + fonts + metadata
