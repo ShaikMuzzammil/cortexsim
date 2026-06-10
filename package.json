@@ -1,26 +1,36 @@
 {
-  "name": "cortexsim-pro",
+  "name": "cortexsim-godmode",
+  "version": "6.0.0",
   "private": true,
-  "version": "4.0.0",
-  "type": "module",
+  "description": "CortexSim GODMODE - full-stack Next.js spiking neural network simulator",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
   },
   "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "zustand": "^4.5.5"
+    "next": "14.2.5",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "framer-motion": "11.3.19",
+    "zustand": "4.5.4",
+    "three": "0.166.1",
+    "mongodb": "6.8.0",
+    "clsx": "2.1.1",
+    "tailwind-merge": "2.4.0",
+    "lucide-react": "0.417.0"
   },
   "devDependencies": {
-    "@types/react": "^18.3.12",
-    "@types/react-dom": "^18.3.1",
-    "@vitejs/plugin-react": "^4.3.4",
-    "autoprefixer": "^10.4.20",
-    "postcss": "^8.4.49",
-    "tailwindcss": "^3.4.15",
-    "typescript": "^5.6.3",
-    "vite": "^5.4.11"
+    "typescript": "5.5.4",
+    "@types/node": "20.14.12",
+    "@types/react": "18.3.3",
+    "@types/react-dom": "18.3.0",
+    "@types/three": "0.166.0",
+    "autoprefixer": "10.4.19",
+    "postcss": "8.4.40",
+    "tailwindcss": "3.4.7",
+    "eslint": "8.57.0",
+    "eslint-config-next": "14.2.5"
   }
 }

@@ -1,75 +1,104 @@
-import { useReveal } from "../../hooks/useReveal";
+"use client";
+
+import { motion } from "framer-motion";
+import {
+  Box,
+  Activity,
+  SlidersHorizontal,
+  LineChart,
+  FlaskConical,
+  Download,
+  Cpu,
+  GitBranch,
+} from "lucide-react";
+import { fadeUp, stagger, hoverLift, viewportOnce } from "@/lib/motion";
 
 const FEATURES = [
   {
-    icon: "🧠",
-    title: "Real Izhikevich neurons",
-    body: "Biologically grounded spiking dynamics — not a toy animation.",
+    icon: Box,
+    title: "3D Network View",
+    body: "Thousands of neurons rendered on a brain-shell with WebGL. Excitatory cells glow red, inhibitory blue, spikes flash white.",
   },
   {
-    icon: "🌐",
-    title: "Interactive 3D cloud",
-    body: "Drag to rotate, scroll to zoom; every spike flashes in real time.",
+    icon: SlidersHorizontal,
+    title: "Live Controls",
+    body: "Ten smooth sliders reshape the network in real time - gain, drive, connectivity, noise, synaptic decay and more.",
   },
   {
-    icon: "📊",
-    title: "Live raster & rate",
-    body: "Spike raster and population firing rate update every frame.",
+    icon: Cpu,
+    title: "Editable Dynamics",
+    body: "Rewrite the dv/dt and du/dt equations from the UI and watch the whole population respond instantly.",
   },
   {
-    icon: "🎛️",
-    title: "Full parameter control",
-    body: "Tune size, connectivity, E/I balance, drive and speed live.",
+    icon: LineChart,
+    title: "Seven Live Charts",
+    body: "Raster, rate histogram, Welch power spectrum, voltage scope, phase plane, LFP and a correlation matrix.",
   },
   {
-    icon: "⚡",
-    title: "Stimulate the network",
-    body: "Inject current pulses and watch the response propagate.",
+    icon: Activity,
+    title: "Real Analytics",
+    body: "Population rate, synchrony index, dominant frequency, Shannon entropy and pairwise correlations every frame.",
   },
   {
-    icon: "📈",
-    title: "Power spectrum",
-    body: "Live FFT reveals the dominant oscillation frequency.",
+    icon: FlaskConical,
+    title: "Parameter Sweeps",
+    body: "Batch-run across any parameter and chart how rate, synchrony and rhythm change across the range.",
   },
   {
-    icon: "🔬",
-    title: "Probe any neuron",
-    body: "Watch a single cell's membrane voltage and phase portrait.",
+    icon: GitBranch,
+    title: "Topologies & Plasticity",
+    body: "Random, small-world, scale-free and grid wiring, optional STDP plasticity and axonal delay lines.",
   },
   {
-    icon: "📥",
-    title: "Export everything",
-    body: "PNG, CSV, JSON and a print-ready PDF report — one click.",
+    icon: Download,
+    title: "Export Everything",
+    body: "Save PNG snapshots, CSV spike trains, JSON state, printable PDF reports and replayable recordings.",
   },
 ];
 
 export default function Features() {
-  const ref = useReveal<HTMLDivElement>();
   return (
-    <section id="features" className="relative px-6 py-28">
-      <div className="mx-auto max-w-6xl">
-        <div ref={ref} className="reveal mb-14 text-center">
-          <h2 className="text-4xl font-black tracking-tight sm:text-5xl">
-            Everything you need to
-            <span className="gradient-text"> explore dynamics</span>
-          </h2>
-          <p className="mx-auto mt-4 max-w-xl text-white/60">
-            A complete, real simulator — not a landing page with a fake demo.
-          </p>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {FEATURES.map((f) => (
-            <div
+    <section id="features" className="relative mx-auto max-w-7xl px-6 py-28">
+      <motion.div
+        variants={fadeUp}
+        initial="hidden"
+        whileInView="show"
+        viewport={viewportOnce}
+        className="mx-auto mb-16 max-w-2xl text-center"
+      >
+        <h2 className="text-4xl font-extrabold sm:text-5xl">
+          Everything is interactive
+        </h2>
+        <p className="mt-4 text-slate-400">
+          Not screenshots, not slides - a living simulator with real features you
+          can touch.
+        </p>
+      </motion.div>
+      <motion.div
+        variants={stagger}
+        initial="hidden"
+        whileInView="show"
+        viewport={viewportOnce}
+        className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"
+      >
+        {FEATURES.map((f) => {
+          const Icon = f.icon;
+          return (
+            <motion.div
               key={f.title}
-              className="glass hot group rounded-2xl p-5 transition-transform hover:-translate-y-1"
+              variants={fadeUp}
+              whileHover={hoverLift}
+              className="panel panel-pad"
             >
-              <div className="mb-3 text-3xl">{f.icon}</div>
-              <h3 className="mb-1.5 font-bold">{f.title}</h3>
-              <p className="text-sm text-white/55">{f.body}</p>
-            </div>
-          ))}
-        </div>
-      </div>
+              <div className="mb-4 inline-flex rounded-xl bg-brand/15 p-3 text-brand">
+                <Icon size={22} />
+              </div>
+              <h3 className="mb-2 text-lg font-bold">{f.title}</h3>
+              <p className="text-sm leading-relaxed text-slate-400">{f.body}</p>
+            </motion.div>
+          );
+        })}
+      </motion.div>
     </section>
   );
 }

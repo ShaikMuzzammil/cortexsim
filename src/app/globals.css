@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #05070e;
+  --panel: #0b1020;
+  --edge: #1d2742;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  background: var(--bg);
+  color: #e8edff;
+}
+
+body {
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.light body,
+body.light {
+  background: #eef2ff;
+  color: #0b1020;
+}
+
+@layer components {
+  .panel {
+    @apply rounded-2xl border border-edge bg-panel/80 backdrop-blur shadow-card;
+  }
+  .panel-pad {
+    @apply p-4 sm:p-5;
+  }
+  .label {
+    @apply text-xs font-medium uppercase tracking-wider text-slate-400;
+  }
+  .metric-num {
+    @apply font-mono text-xl font-semibold text-white;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition;
+  }
+  .btn-primary {
+    @apply btn bg-brand text-ink hover:brightness-110 shadow-glow;
+  }
+  .btn-ghost {
+    @apply btn border border-edge text-slate-200 hover:bg-panel2;
+  }
+  .chip {
+    @apply cursor-pointer rounded-full border border-edge px-3 py-1 text-xs text-slate-300 hover:border-brand hover:text-white transition;
+  }
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #233055;
+  border-radius: 8px;
+}
+
+canvas {
+  display: block;
+}
