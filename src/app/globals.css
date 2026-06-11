@@ -70,3 +70,52 @@ body.light {
 canvas {
   display: block;
 }
+
+
+/* ===== Studio custom cursor ===== */
+.studio-cursor-dot,
+.studio-cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%, -50%);
+  will-change: transform, left, top;
+}
+.studio-cursor-dot {
+  height: 7px;
+  width: 7px;
+  border-radius: 9999px;
+  background: #6ea8ff;
+  box-shadow: 0 0 12px rgba(110, 168, 255, 0.9);
+}
+.studio-cursor-ring {
+  height: 30px;
+  width: 30px;
+  border-radius: 9999px;
+  border: 1.5px solid rgba(110, 168, 255, 0.55);
+  background: rgba(110, 168, 255, 0.04);
+}
+.studio-cursor-ring.hot {
+  border-color: rgba(54, 211, 153, 0.9);
+  background: rgba(54, 211, 153, 0.08);
+}
+@media (pointer: fine) {
+  body.studio-cursor-on,
+  body.studio-cursor-on a,
+  body.studio-cursor-on button,
+  body.studio-cursor-on input,
+  body.studio-cursor-on select,
+  body.studio-cursor-on textarea,
+  body.studio-cursor-on [role="button"],
+  body.studio-cursor-on .studio-hot {
+    cursor: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .studio-cursor-dot,
+  .studio-cursor-ring {
+    display: none;
+  }
+}

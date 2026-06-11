@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Toaster from "@/components/learn/Toaster";
+import StudioCursor from "@/components/studio/StudioCursor";
 
 export const metadata: Metadata = {
   title: "CortexSim Studio - Neural Dynamics Platform",
@@ -39,6 +40,7 @@ export default function RootLayout({
       <body className="min-h-screen antialiased">
         {children}
         <Toaster />
+        <StudioCursor />
       </body>
     </html>
   );
