@@ -9,6 +9,7 @@ import {
   fmt,
   clamp,
 } from "../kit";
+import { engineBus } from "../engineBus";
 
 function ensurePop(s: ActState, N: number) {
   if (!s.pop || s.pop.length !== N) {
@@ -35,9 +36,7 @@ const raster: Activity = {
     "Red dots are excitatory cells, blue are inhibitory.",
   ],
   controls: [
-    { key: "N", label: "Neurons", type: "range", min: 40, max: 240, step: 10, default: 140 },
-    { key: "drive", label: "Input drive", type: "range", min: 2, max: 13, step: 0.5, default: 6, unit: "" },
-    { key: "synch", label: "Rhythmic drive", type: "range", min: 0, max: 100, step: 1, default: 35, unit: "%" },
+    { key: "window", label: "Window", type: "range", min: 100, max: 2000, step: 50, default: 500, unit: " ms" },
   ],
   animated: true,
   init: (p: Params) => {
@@ -45,45 +44,49 @@ const raster: Activity = {
     ensurePop(s, Math.round(p.N));
     return s;
   },
-  step: (s, p, t) => {
-    const N = Math.round(p.N);
-    ensurePop(s, N);
-    const osc = 1 + (p.synch / 100) * Math.sin(t * 0.06) * 1.4;
-    for (let i = 0; i < N; i++) {
-      const nrn = s.pop[i];
-      const model = nrn.exc ? IZH.rs : IZH.fs;
-      const I = p.drive * osc + (Math.random() - 0.5) * 5;
-      const f1 = izhStep(nrn, I, model, 0.5);
-      const f2 = izhStep(nrn, I, model, 0.5);
-      if (f1 || f2) s.spikes.push({ t, i, exc: nrn.exc });
-    }
-    while (s.spikes.length && s.spikes[0].t < t - 260) s.spikes.shift();
+  // Reads the shared engine: every spike in the live SNN flows in here so this
+  // raster is a real view of the running network, not a synthetic demo.
+  step: (s, _p, _t) => {
+    s.spikes = engineBus.latest.recentSpikes;
   },
-  draw: (d: DrawArgs, s, p, t) => {
+  draw: (d: DrawArgs, s, p) => {
     const { ctx, w, h } = d;
     frame(ctx, w, h, 8, 6);
-    const W = 240;
-    const x0 = t - W;
-    const N = Math.round(p.N);
-    for (const sp of s.spikes) {
-      if (sp.t < x0) continue;
-      const x = ((sp.t - x0) / W) * w;
+    const N = Math.max(1, engineBus.latest.N);
+    const tNow = engineBus.latest.tMs;
+    const winMs = Math.max(50, Number(p.window) || 500);
+    const t0 = tNow - winMs;
+    const spikes = engineBus.latest.recentSpikes;
+    for (let k = 0; k < spikes.length; k++) {
+      const sp = spikes[k];
+      if (sp.tMs < t0) continue;
+      const x = ((sp.tMs - t0) / winMs) * w;
       const y = (sp.i / N) * h;
       ctx.fillStyle = sp.exc ? PAL.exc : PAL.inh;
       ctx.fillRect(x, y, 2.2, 2.2);
     }
-    label(ctx, "neuron index \u2191   time \u2192", 8, h - 8, PAL.dim, "10px ui-sans-serif");
+    label(ctx, "neuron \u2191   t (ms) \u2192", 8, h - 8, PAL.dim, "10px ui-sans-serif");
   },
-  readouts: (s, p) => {
-    const N = Math.round(p.N);
-    const cnt = s.spikes ? s.spikes.length : 0;
-    const rate = cnt / N / 0.26;
+  readouts: () => {
+    const N = Math.max(1, engineBus.latest.N);
+    const tNow = engineBus.latest.tMs;
+    const winMs = 500;
+    const t0 = tNow - winMs;
+    let cnt = 0;
     let exc = 0;
-    if (s.spikes) for (const sp of s.spikes) if (sp.exc) exc++;
+    const spikes = engineBus.latest.recentSpikes;
+    for (let k = 0; k < spikes.length; k++) {
+      const sp = spikes[k];
+      if (sp.tMs < t0) continue;
+      cnt++;
+      if (sp.exc) exc++;
+    }
+    const rate = cnt / N / (winMs / 1000);
     return [
       { label: "Spikes / window", value: fmt(cnt, 0), accent: PAL.brand },
       { label: "Mean rate", value: fmt(rate, 1) + " Hz" },
       { label: "Excitatory share", value: fmt(cnt ? (100 * exc) / cnt : 0, 0) + "%", accent: PAL.exc },
+      { label: "Engine N", value: String(N) },
     ];
   },
 };
@@ -102,8 +105,6 @@ const popRate: Activity = {
     "A flat total rate with oscillating E/I means tightly balanced dynamics.",
   ],
   controls: [
-    { key: "drive", label: "Input drive", type: "range", min: 2, max: 13, step: 0.5, default: 7 },
-    { key: "inh", label: "Inhibition gain", type: "range", min: 0.2, max: 3, step: 0.1, default: 1.2 },
     { key: "smooth", label: "Smoothing", type: "range", min: 1, max: 20, step: 1, default: 6 },
   ],
   animated: true,
@@ -112,30 +113,15 @@ const popRate: Activity = {
     ensurePop(s, 160);
     return s;
   },
-  step: (s, p, t) => {
-    ensurePop(s, 160);
-    let ce = 0;
-    let ci = 0;
-    const N = s.pop.length;
-    for (let i = 0; i < N; i++) {
-      const nrn = s.pop[i];
-      const model = nrn.exc ? IZH.rs : IZH.fs;
-      const gain = nrn.exc ? 1 : p.inh;
-      const I = p.drive * gain + (Math.random() - 0.5) * 5;
-      const f1 = izhStep(nrn, I, model, 0.5);
-      const f2 = izhStep(nrn, I, model, 0.5);
-      if (f1 || f2) {
-        if (nrn.exc) ce++;
-        else ci++;
-      }
-    }
-    const a = 1 / p.smooth;
-    const eHz = (ce / (N * 0.8)) / 0.001 / 1000;
-    const iHz = (ci / (N * 0.2)) / 0.001 / 1000;
+  // Reads firing rates directly from the shared live engine.
+  step: (s, p) => {
+    const eHz = engineBus.latest.eRateNow;
+    const iHz = engineBus.latest.iRateNow;
+    const a = 1 / Math.max(1, Number(p.smooth) || 6);
     s.se = s.se * (1 - a) + eHz * a;
     s.si = s.si * (1 - a) + iHz * a;
     s.st = s.st * (1 - a) + (eHz + iHz) * 0.5 * a;
-    if (s.e.length > 300) {
+    if (s.e.length > 600) {
       s.e.shift();
       s.i.shift();
       s.tot.shift();

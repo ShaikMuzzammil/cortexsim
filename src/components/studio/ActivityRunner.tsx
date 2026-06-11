@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Activity, Control, Params, Readout } from "@/lib/studio/types";
 import { educationFor } from "@/lib/studio/education";
+import { activeView } from "@/lib/studio/activeViewBus";
+import { downloadCanvasPng, downloadJson } from "@/lib/studio/sessions";
 
 const STATUS_LABEL: Record<string, string> = {
   live: "Live",
@@ -23,6 +25,7 @@ export default function ActivityRunner({ activity }: { activity: Activity }) {
   const stateRef = useRef<any>(null);
   const tickRef = useRef(0);
   const rafRef = useRef<number | null>(null);
+  const readoutsRef = useRef<Readout[]>([]);
 
   const [params, setParams] = useState<Params>(() => defaultParams(activity.controls));
   const [running, setRunning] = useState(true);
@@ -40,6 +43,10 @@ export default function ActivityRunner({ activity }: { activity: Activity }) {
     tickRef.current = 0;
     setRunning(true);
     setShowInfo(false);
+    // Register with the active-view bus so the workspace Export button can
+    // download this view's canvas + readouts.
+    activeView.slug = activity.slug;
+    activeView.title = activity.title;
   }, [activity]);
 
   function sizeCanvas(): { ctx: CanvasRenderingContext2D; w: number; h: number } | null {
@@ -59,223 +66,239 @@ export default function ActivityRunner({ activity }: { activity: Activity }) {
     return { ctx, w, h };
   }
 
-  function drawOnce() {
-    const sized = sizeCanvas();
-    if (!sized || !stateRef.current) return;
-    activity.draw({ ctx: sized.ctx, w: sized.w, h: sized.h }, stateRef.current, paramsRef.current, tickRef.current);
-  }
-
-  // Main animation / render loop.
+  // Animation loop.
   useEffect(() => {
-    let mounted = true;
-    if (!stateRef.current) stateRef.current = activity.init(paramsRef.current);
-
-    const loop = () => {
-      if (!mounted) return;
-      if (activity.animated && activity.step) {
-        activity.step(stateRef.current, paramsRef.current, tickRef.current);
-        tickRef.current += 1;
+    function loop() {
+      const sized = sizeCanvas();
+      if (sized) {
+        const { ctx, w, h } = sized;
+        const t = tickRef.current;
+        if (running && activity.step) {
+          activity.step(stateRef.current, paramsRef.current, t);
+          tickRef.current += 1;
+        }
+        ctx.clearRect(0, 0, w, h);
+        activity.draw({ ctx, w, h }, stateRef.current, paramsRef.current, t);
+        if (activity.readouts && tickRef.current % 6 === 0) {
+          const ro = activity.readouts(stateRef.current, paramsRef.current) || [];
+          readoutsRef.current = ro;
+          setReadouts(ro);
+          activeView.readouts = ro;
+          activeView.params = { ...paramsRef.current };
+          activeView.canvas = canvasRef.current;
+        }
       }
-      drawOnce();
       rafRef.current = requestAnimationFrame(loop);
-    };
-
-    if (running) {
-      rafRef.current = requestAnimationFrame(loop);
-    } else {
-      drawOnce();
     }
+    rafRef.current = requestAnimationFrame(loop);
     return () => {
-      mounted = false;
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
     };
   }, [activity, running]);
 
-  // For non-animated activities, redraw whenever params change.
-  useEffect(() => {
-    if (!activity.animated) {
-      stateRef.current = activity.init(paramsRef.current);
-      drawOnce();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params, activity]);
-
-  // Poll readouts a few times a second.
-  useEffect(() => {
-    const id = setInterval(() => {
-      if (activity.readouts && stateRef.current) {
-        setReadouts(activity.readouts(stateRef.current, paramsRef.current));
-      }
-    }, 250);
-    return () => clearInterval(id);
-  }, [activity]);
-
-  function setParam(key: string, value: number | string | boolean) {
-    paramsRef.current = { ...paramsRef.current, [key]: value };
-    setParams(paramsRef.current);
+  function updateParam(key: string, value: number | string | boolean) {
+    const next = { ...paramsRef.current, [key]: value };
+    paramsRef.current = next;
+    setParams(next);
+    if (activity.onParamChange) activity.onParamChange(stateRef.current, next, key);
   }
 
-  function resetParams() {
-    const fresh = defaultParams(activity.controls);
-    paramsRef.current = fresh;
-    setParams(fresh);
-    stateRef.current = activity.init(fresh);
+  function reset() {
+    stateRef.current = activity.init(paramsRef.current);
     tickRef.current = 0;
   }
 
-  const statusClass =
-    activity.status === "live" ? "text-good" : activity.status === "beta" ? "text-warn" : "text-slate-400";
+  function exportPng() {
+    if (canvasRef.current) {
+      const name = `cortexsim-${activity.slug}-${Date.now()}.png`;
+      downloadCanvasPng(canvasRef.current, name);
+    }
+  }
 
-  const outputLine = readouts.length
-    ? readouts.map((r) => r.label + ": " + r.value).join("   \u2022   ")
-    : "Waiting for output\u2026";
+  function exportJson() {
+    const payload = {
+      activity: { slug: activity.slug, id: activity.id, title: activity.title, group: activity.group },
+      params: paramsRef.current,
+      readouts: readoutsRef.current,
+      capturedAt: new Date().toISOString(),
+    };
+    downloadJson(`cortexsim-${activity.slug}-${Date.now()}.json`, payload);
+  }
+
+  const outputLine =
+    readouts.length === 0
+      ? "Waiting for output\u2026"
+      : readouts.map((r) => `${r.label}: ${r.value}`).join("   \u2022   ");
 
   return (
     <motion.div
-      key={activity.slug}
-      initial={enterInitial}
-      animate={enterAnimate}
-      transition={enterTransition}
-      className="flex flex-col gap-4"
+      initial={containerInit}
+      animate={containerShow}
+      className="space-y-4"
     >
-      <header className="flex flex-wrap items-start justify-between gap-3">
+      {/* Header */}
+      <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] tabular-nums text-slate-500">
-              {String(activity.id).padStart(2, "0")}
-            </span>
-            <h2 className="text-lg font-semibold text-white">{activity.title}</h2>
-            <span className={"text-[10px] font-semibold uppercase tracking-wider " + statusClass}>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="chip">{String(activity.id).padStart(2, "0")}</span>
+            <span className="chip">{activity.group}</span>
+            <span
+              className={
+                "chip " +
+                (activity.status === "live"
+                  ? "text-good"
+                  : activity.status === "beta"
+                    ? "text-warn"
+                    : "text-slate-400")
+              }
+            >
               {STATUS_LABEL[activity.status]}
             </span>
           </div>
-          <p className="mt-1 max-w-2xl text-sm text-slate-400">{activity.what}</p>
+          <h1 className="mt-2 text-2xl font-bold text-white">{activity.title}</h1>
+          <p className="mt-1 max-w-3xl text-sm text-slate-400">{activity.what}</p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowInfo((v) => !v)}
-            className="studio-hot rounded-lg border border-edge bg-panel2 px-3 py-1.5 text-sm text-slate-200 hover:border-purple-400"
+            className="rounded-md border border-edge bg-panel2 px-3 py-1.5 text-xs text-slate-200 hover:border-brand"
           >
-            {showInfo ? "Hide info" : "Why it matters"}
+            {showInfo ? "Hide details" : "Why it matters"}
           </button>
           <button
-            onClick={resetParams}
-            className="studio-hot rounded-lg border border-edge bg-panel2 px-3 py-1.5 text-sm text-slate-200 hover:border-brand"
+            onClick={reset}
+            className="rounded-md border border-edge bg-panel2 px-3 py-1.5 text-xs text-slate-200 hover:border-brand"
           >
             Reset
           </button>
           <button
             onClick={() => setRunning((r) => !r)}
-            className="studio-hot rounded-lg border border-edge bg-panel2 px-3 py-1.5 text-sm text-slate-200 hover:border-brand"
+            className={
+              "rounded-md border px-3 py-1.5 text-xs " +
+              (running
+                ? "border-good/40 bg-good/10 text-good"
+                : "border-edge bg-panel2 text-slate-200")
+            }
           >
-            {running ? "Pause" : "Run"}
+            {running ? "\u25A0 Pause" : "\u25B6 Run"}
+          </button>
+          <button
+            onClick={exportPng}
+            className="rounded-md border border-edge bg-panel2 px-3 py-1.5 text-xs text-slate-200 hover:border-brand"
+            title="Export current view as PNG"
+          >
+            PNG
+          </button>
+          <button
+            onClick={exportJson}
+            className="rounded-md border border-edge bg-panel2 px-3 py-1.5 text-xs text-slate-200 hover:border-brand"
+            title="Export current readouts as JSON"
+          >
+            JSON
           </button>
         </div>
-      </header>
+      </div>
 
-      <AnimatePresence>
-        {showInfo && edu && (
+      {/* Education card */}
+      <AnimatePresence initial={false}>
+        {showInfo && (
           <motion.div
-            initial={infoInitial}
-            animate={infoAnimate}
-            exit={infoInitial}
-            className="overflow-hidden rounded-xl border border-purple-500/40 bg-purple-500/5 p-4"
+            key="info"
+            initial={infoInit}
+            animate={infoShow}
+            exit={infoInit}
+            className="overflow-hidden rounded-xl border border-edge bg-panel2/60"
           >
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 p-4 md:grid-cols-2">
               <div>
-                <div className="text-[11px] font-semibold uppercase tracking-wider text-purple-300">
-                  Why this matters
-                </div>
-                <p className="mt-1 text-sm text-slate-300">{edu.why}</p>
-                <div className="mt-3 text-[11px] font-semibold uppercase tracking-wider text-purple-300">
-                  Knowledge gain
-                </div>
-                <p className="mt-1 text-sm text-slate-300">{edu.knowledge}</p>
+                <div className="text-[10px] uppercase tracking-wider text-slate-500">Why it matters</div>
+                <p className="mt-1 text-sm text-slate-200">{edu.why}</p>
+                <div className="mt-4 text-[10px] uppercase tracking-wider text-slate-500">Knowledge gain</div>
+                <p className="mt-1 text-sm text-slate-200">{edu.knowledge}</p>
               </div>
               <div>
-                <div className="text-[11px] font-semibold uppercase tracking-wider text-purple-300">
-                  Real-world applications
-                </div>
-                <ul className="mt-1 space-y-1">
-                  {edu.applications.map((a, i) => (
-                    <li key={i} className="flex gap-2 text-sm text-slate-300">
-                      <span className="text-purple-300">{"\u2192"}</span>
+                <div className="text-[10px] uppercase tracking-wider text-slate-500">Real-world applications</div>
+                <ul className="mt-1 space-y-1 text-sm text-slate-300">
+                  {edu.applications.map((a) => (
+                    <li key={a} className="flex gap-2">
+                      <span className="text-brand">{"\u2192"}</span>
                       <span>{a}</span>
                     </li>
                   ))}
                 </ul>
-                <div className="mt-3 text-[11px] font-semibold uppercase tracking-wider text-purple-300">
-                  Tech stack
-                </div>
+                <div className="mt-4 text-[10px] uppercase tracking-wider text-slate-500">Tech stack</div>
                 <div className="mt-1 flex flex-wrap gap-1.5">
-                  {edu.stack.map((s, i) => (
-                    <span key={i} className="rounded-md border border-edge bg-panel px-2 py-0.5 text-[11px] text-slate-300">
-                      {s}
-                    </span>
+                  {edu.stack.map((s) => (
+                    <span key={s} className="chip text-[10px]">{s}</span>
                   ))}
                 </div>
+                <div className="mt-4 text-[10px] uppercase tracking-wider text-slate-500">Try this</div>
+                <p className="mt-1 text-sm text-slate-300">{edu.tryThis}</p>
               </div>
-            </div>
-            <div className="mt-3 rounded-lg border border-good/30 bg-good/5 px-3 py-2 text-sm text-good">
-              <span className="font-semibold">Try this: </span>
-              <span className="text-slate-200">{edu.tryThis}</span>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="grid gap-4 xl:grid-cols-[1fr_300px]">
-        <div className="flex flex-col gap-3">
-          <div className="relative h-[360px] overflow-hidden rounded-xl border border-edge bg-[#05070e]">
-            <canvas ref={canvasRef} className="h-full w-full" />
-          </div>
-
-          <div className="rounded-lg border border-edge bg-black/40 px-3 py-2 font-mono text-[11px] text-good">
-            <span className="text-slate-500">output &gt; </span>
+      {/* Canvas + controls */}
+      <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
+        <div className="rounded-xl border border-edge bg-ink/60 p-2">
+          <canvas ref={canvasRef} className="h-[420px] w-full rounded-lg" />
+          <div className="mt-2 overflow-x-auto whitespace-nowrap rounded-md border border-edge bg-panel2/40 px-3 py-1.5 font-mono text-[11px] text-slate-300">
+            <span className="text-slate-500">output {"\u2192"} </span>
             {outputLine}
           </div>
-
-          {readouts.length > 0 && (
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {readouts.map((r, i) => (
-                <div key={i} className="rounded-lg border border-edge bg-panel2/70 px-3 py-2">
-                  <div className="text-[10px] uppercase tracking-wider text-slate-500">{r.label}</div>
-                  <div className="text-sm font-semibold" style={readoutStyle(r.accent)}>
-                    {r.value}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
-        <div className="flex flex-col gap-4">
-          <div className="rounded-xl border border-edge bg-panel2/60 p-4">
+        <div className="space-y-3">
+          <div className="rounded-xl border border-edge bg-panel2/40 p-3">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              <div className="text-[10px] uppercase tracking-wider text-slate-500">
                 Controls
-              </span>
-              <span className="text-[10px] text-slate-500">{activity.controls.length} options</span>
+              </div>
+              <div className="text-[10px] text-slate-500">{activity.controls.length} options</div>
             </div>
-            <div className="mt-3 space-y-4">
+            <div className="mt-2 space-y-3">
               {activity.controls.map((c) => (
-                <ControlField key={c.key} control={c} value={params[c.key]} onChange={setParam} />
+                <ControlRow
+                  key={c.key}
+                  control={c}
+                  value={params[c.key]}
+                  onChange={(v) => updateParam(c.key, v)}
+                />
               ))}
-              {activity.controls.length === 0 && (
-                <p className="text-xs text-slate-500">This activity runs automatically.</p>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-edge bg-panel2/40 p-3">
+            <div className="text-[10px] uppercase tracking-wider text-slate-500">Readouts</div>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              {readouts.length === 0 ? (
+                <div className="col-span-2 text-xs text-slate-500">No live values yet.</div>
+              ) : (
+                readouts.map((r) => (
+                  <div key={r.label} className="rounded-md border border-edge bg-ink/40 px-2 py-1.5">
+                    <div className="text-[10px] uppercase tracking-wider text-slate-500">{r.label}</div>
+                    <div
+                      className="text-sm font-semibold tabular-nums"
+                      style={accentStyle(r.accent)}
+                    >
+                      {r.value}
+                    </div>
+                  </div>
+                ))
               )}
             </div>
           </div>
 
-          <div className="rounded-xl border border-edge bg-panel2/60 p-4">
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-              What you should see
-            </div>
-            <p className="mt-2 text-sm text-brand">{activity.outcome}</p>
-            <ul className="mt-3 space-y-2">
-              {activity.tips.map((t, i) => (
-                <li key={i} className="flex gap-2 text-xs text-slate-400">
-                  <span className="mt-0.5 text-brand">{"\u2022"}</span>
+          <div className="rounded-xl border border-edge bg-panel2/40 p-3">
+            <div className="text-[10px] uppercase tracking-wider text-slate-500">Outcome</div>
+            <p className="mt-1 text-xs text-slate-300">{activity.outcome}</p>
+            <div className="mt-3 text-[10px] uppercase tracking-wider text-slate-500">Tips</div>
+            <ul className="mt-1 space-y-1 text-xs text-slate-400">
+              {activity.tips.map((t) => (
+                <li key={t} className="flex gap-2">
+                  <span className="text-brand">{"\u2022"}</span>
                   <span>{t}</span>
                 </li>
               ))}
@@ -287,27 +310,23 @@ export default function ActivityRunner({ activity }: { activity: Activity }) {
   );
 }
 
-function readoutStyle(accent?: string) {
-  return accent ? { color: accent } : { color: "#e6edff" };
-}
-
-function ControlField({
+function ControlRow({
   control,
   value,
   onChange,
 }: {
   control: Control;
-  value: number | string | boolean;
-  onChange: (key: string, value: number | string | boolean) => void;
+  value: number | string | boolean | undefined;
+  onChange: (v: number | string | boolean) => void;
 }) {
   if (control.type === "range") {
-    const num = typeof value === "number" ? value : Number(control.default);
+    const num = typeof value === "number" ? value : (control.default as number);
     return (
-      <div>
-        <div className="flex items-center justify-between text-xs">
-          <span className="text-slate-300">{control.label}</span>
-          <span className="tabular-nums text-slate-400">
-            {num}
+      <label className="block">
+        <div className="flex items-center justify-between text-[11px] text-slate-400">
+          <span>{control.label}</span>
+          <span className="tabular-nums text-slate-300">
+            {num.toFixed((control.step || 1) < 1 ? 2 : 0)}
             {control.unit || ""}
           </span>
         </div>
@@ -317,69 +336,61 @@ function ControlField({
           max={control.max}
           step={control.step}
           value={num}
-          onChange={(e) => onChange(control.key, Number(e.target.value))}
-          className="studio-hot mt-1 w-full accent-[#6ea8ff]"
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="mt-1 h-1 w-full accent-[#6ea8ff]"
         />
-      </div>
+      </label>
     );
   }
-
-  if (control.type === "select") {
-    return (
-      <div>
-        <div className="text-xs text-slate-300">{control.label}</div>
-        <select
-          value={String(value)}
-          onChange={(e) => onChange(control.key, e.target.value)}
-          className="studio-hot mt-1 w-full rounded-lg border border-edge bg-panel px-2 py-1.5 text-sm text-slate-200 outline-none focus:border-brand"
-        >
-          {(control.options || []).map((o) => (
-            <option key={String(o.value)} value={String(o.value)}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-      </div>
-    );
-  }
-
   if (control.type === "toggle") {
     const on = !!value;
     return (
-      <label className="studio-hot flex cursor-pointer items-center justify-between text-xs text-slate-300">
+      <label className="flex items-center justify-between text-xs text-slate-300">
         <span>{control.label}</span>
         <button
-          type="button"
-          onClick={() => onChange(control.key, !on)}
+          onClick={() => onChange(!on)}
           className={
-            "relative h-5 w-9 rounded-full transition " + (on ? "bg-brand" : "bg-edge")
+            "h-5 w-9 rounded-full border transition " +
+            (on ? "border-good bg-good/40" : "border-edge bg-panel2")
           }
         >
           <span
             className={
-              "absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all " +
-              (on ? "left-4" : "left-0.5")
+              "block h-3.5 w-3.5 rounded-full bg-white transition " +
+              (on ? "translate-x-4" : "translate-x-0.5")
             }
           />
         </button>
       </label>
     );
   }
-
-  // button: increments a nonce so activities can react to a click.
-  return (
-    <button
-      type="button"
-      onClick={() => onChange(control.key, (typeof value === "number" ? value : 0) + 1)}
-      className="studio-hot w-full rounded-lg border border-brand/50 bg-brand/10 px-3 py-1.5 text-sm text-brand hover:bg-brand/20"
-    >
-      {control.label}
-    </button>
-  );
+  if (control.type === "select") {
+    return (
+      <label className="block">
+        <div className="text-[11px] text-slate-400">{control.label}</div>
+        <select
+          value={String(value)}
+          onChange={(e) => onChange(e.target.value)}
+          className="mt-1 w-full rounded-md border border-edge bg-ink/60 px-2 py-1 text-xs text-slate-200"
+        >
+          {(control.options || []).map((opt) => (
+            <option key={String(opt.value)} value={String(opt.value)}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </label>
+    );
+  }
+  return null;
 }
 
-const enterInitial = { opacity: 0, y: 10 };
-const enterAnimate = { opacity: 1, y: 0 };
-const enterTransition = { duration: 0.28 };
-const infoInitial = { opacity: 0, height: 0 };
-const infoAnimate = { opacity: 1, height: "auto" };
+const containerInit = { opacity: 0, y: 8 };
+const containerShow = { opacity: 1, y: 0 };
+const infoInit = { opacity: 0, height: 0 };
+const infoShow = { opacity: 1, height: "auto" as const };
+
+function accentStyle(accent?: string): React.CSSProperties {
+  if (!accent) return {};
+  return { color: accent };
+}
