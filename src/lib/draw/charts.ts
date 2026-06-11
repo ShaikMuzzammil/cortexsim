@@ -229,3 +229,142 @@ export function drawCorrelation(
     }
   }
 }
+
+// ---------------------------------------------------------------------------
+// Extended visualizations (added for the advanced analysis dashboard).
+// ---------------------------------------------------------------------------
+
+export interface LineSeries {
+  data: number[];
+  color: string;
+}
+
+// Overlay several line series on one axis (e.g. excitatory / inhibitory / total).
+export function drawMultiLine(
+  canvas: HTMLCanvasElement,
+  series: LineSeries[],
+  yMax?: number,
+) {
+  const p = prep(canvas);
+  if (!p) return;
+  const { ctx, w, h } = p;
+  ctx.fillStyle = BG;
+  ctx.fillRect(0, 0, w, h);
+  let max = yMax ?? 0;
+  if (yMax === undefined)
+    for (const s of series) for (const v of s.data) if (v > max) max = v;
+  max = max || 1;
+  for (const s of series) {
+    if (s.data.length < 2) continue;
+    ctx.beginPath();
+    for (let i = 0; i < s.data.length; i++) {
+      const x = (i / (s.data.length - 1)) * w;
+      const y = h - (s.data[i] / max) * h * 0.92 - 4;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = s.color;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+}
+
+// Radial half-gauge for a normalized 0..1 value.
+export function drawGauge(
+  canvas: HTMLCanvasElement,
+  value: number,
+  color: string,
+  label: string,
+) {
+  const p = prep(canvas);
+  if (!p) return;
+  const { ctx, w, h } = p;
+  ctx.fillStyle = BG;
+  ctx.fillRect(0, 0, w, h);
+  const cx = w / 2;
+  const cy = h * 0.82;
+  const r = Math.min(w / 2 - 10, h * 0.66);
+  const v = Math.max(0, Math.min(1, value));
+  ctx.lineCap = "round";
+  ctx.lineWidth = Math.max(6, r * 0.16);
+  ctx.strokeStyle = "#1d2742";
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, Math.PI, 2 * Math.PI);
+  ctx.stroke();
+  ctx.strokeStyle = color;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, Math.PI, Math.PI + Math.PI * v);
+  ctx.stroke();
+  ctx.fillStyle = "#e5edff";
+  ctx.textAlign = "center";
+  ctx.font = "700 20px Inter, system-ui, sans-serif";
+  ctx.fillText((v * 100).toFixed(0) + "%", cx, cy - 6);
+  ctx.fillStyle = "#7c8db5";
+  ctx.font = "600 10px Inter, system-ui, sans-serif";
+  ctx.fillText(label, cx, cy + 14);
+}
+
+function heatColor(t: number): string {
+  const x = Math.max(0, Math.min(1, t));
+  const r = Math.round(15 + x * 240);
+  const g = Math.round(20 + 160 * Math.sin(Math.PI * x));
+  const b = Math.round(130 * (1 - x) + 35);
+  return "rgb(" + r + "," + g + "," + b + ")";
+}
+
+// Rolling spectrogram. Columns are oldest..newest; each column is a power[] vector.
+export function drawSpectrogram(
+  canvas: HTMLCanvasElement,
+  columns: number[][],
+  maxBins = 64,
+) {
+  const p = prep(canvas);
+  if (!p) return;
+  const { ctx, w, h } = p;
+  ctx.fillStyle = BG;
+  ctx.fillRect(0, 0, w, h);
+  const cols = columns.length;
+  if (!cols) return;
+  let max = 0;
+  for (const c of columns)
+    for (let k = 0; k < maxBins && k < c.length; k++)
+      if (c[k] > max) max = c[k];
+  max = max || 1;
+  const cw = w / cols;
+  for (let x = 0; x < cols; x++) {
+    const col = columns[x];
+    const bins = Math.min(maxBins, col.length);
+    if (bins === 0) continue;
+    const ch = h / bins;
+    for (let k = 0; k < bins; k++) {
+      const y = h - (k + 1) * ch;
+      ctx.fillStyle = heatColor(col[k] / max);
+      ctx.fillRect(x * cw, y, cw + 0.5, ch + 0.5);
+    }
+  }
+}
+
+// Generic intensity heatmap (rows x cols), used for the neuron activity map.
+export function drawHeatmap(canvas: HTMLCanvasElement, grid: number[][]) {
+  const p = prep(canvas);
+  if (!p) return;
+  const { ctx, w, h } = p;
+  ctx.fillStyle = BG;
+  ctx.fillRect(0, 0, w, h);
+  const rows = grid.length;
+  if (!rows) return;
+  const cols = grid[0].length || 1;
+  let max = 0;
+  for (const row of grid) for (const v of row) if (v > max) max = v;
+  max = max || 1;
+  const cw = w / cols;
+  const chh = h / rows;
+  for (let i = 0; i < rows; i++) {
+    for (let j = 0; j < cols; j++) {
+      const t = grid[i][j] / max;
+      if (t <= 0) continue;
+      ctx.fillStyle = "rgba(110,168,255," + (0.12 + t * 0.88).toFixed(3) + ")";
+      ctx.fillRect(j * cw, i * chh, cw + 0.5, chh + 0.5);
+    }
+  }
+}

@@ -65,3 +65,93 @@ export function correlationMatrix(binned: number[][]): number[][] {
   }
   return out;
 }
+
+// ---------------------------------------------------------------------------
+// Extended analytics for the advanced dashboard.
+// ---------------------------------------------------------------------------
+
+// Inter-spike-interval histogram across all neurons (intervals measured in steps).
+export function isiHistogram(
+  spikes: { t: number; i: number }[],
+  nbins = 28,
+  maxIsi = 140,
+): number[] {
+  const last = new Map<number, number>();
+  const hist = new Array(nbins).fill(0);
+  for (const s of spikes) {
+    const prev = last.get(s.i);
+    if (prev !== undefined) {
+      const isi = s.t - prev;
+      if (isi > 0 && isi <= maxIsi) {
+        const b = Math.min(nbins - 1, Math.floor((isi / maxIsi) * nbins));
+        hist[b] += 1;
+      }
+    }
+    last.set(s.i, s.t);
+  }
+  return hist;
+}
+
+// Distribution of per-neuron spike counts within a recent window.
+export function rateDistribution(
+  points: { t: number; i: number }[],
+  windowStart: number,
+  nbins = 24,
+): number[] {
+  const counts = new Map<number, number>();
+  for (const p of points) {
+    if (p.t < windowStart) continue;
+    counts.set(p.i, (counts.get(p.i) || 0) + 1);
+  }
+  let max = 0;
+  for (const c of counts.values()) if (c > max) max = c;
+  max = max || 1;
+  const hist = new Array(nbins).fill(0);
+  for (const c of counts.values()) {
+    const b = Math.min(nbins - 1, Math.floor((c / max) * nbins));
+    hist[b] += 1;
+  }
+  return hist;
+}
+
+// Detect population bursts as threshold crossings of the rate signal.
+export function detectBursts(
+  rate: number[],
+  k = 1.7,
+): { count: number; threshold: number } {
+  const n = rate.length;
+  if (!n) return { count: 0, threshold: 0 };
+  let mean = 0;
+  for (const r of rate) mean += r;
+  mean /= n;
+  let varr = 0;
+  for (const r of rate) varr += (r - mean) * (r - mean);
+  varr /= n;
+  const sd = Math.sqrt(varr);
+  const thr = mean + k * sd;
+  let count = 0;
+  let inBurst = false;
+  for (const r of rate) {
+    if (r > thr && !inBurst) {
+      count += 1;
+      inBurst = true;
+    } else if (r <= thr) {
+      inBurst = false;
+    }
+  }
+  return { count, threshold: thr };
+}
+
+// Histogram of out-degrees across the network.
+export function degreeHistogram(degrees: number[], nbins = 20): number[] {
+  if (!degrees.length) return [];
+  let max = 0;
+  for (const d of degrees) if (d > max) max = d;
+  max = max || 1;
+  const hist = new Array(nbins).fill(0);
+  for (const d of degrees) {
+    const b = Math.min(nbins - 1, Math.floor((d / max) * nbins));
+    hist[b] += 1;
+  }
+  return hist;
+}

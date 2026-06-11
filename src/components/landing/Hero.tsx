@@ -16,13 +16,15 @@ function HeroCanvas() {
     if (!ctx) return;
     let raf = 0;
     const DPR = Math.min(2, window.devicePixelRatio || 1);
-    const N = 90;
+    const N = 120;
     const pts = Array.from({ length: N }, () => ({
       x: Math.random(),
       y: Math.random(),
-      vx: (Math.random() - 0.5) * 0.0006,
-      vy: (Math.random() - 0.5) * 0.0006,
+      z: 0.3 + Math.random() * 0.7,
+      vx: (Math.random() - 0.5) * 0.0008,
+      vy: (Math.random() - 0.5) * 0.0008,
       p: Math.random() * Math.PI * 2,
+      warm: Math.random() < 0.35,
     }));
     const resize = () => {
       canvas.width = canvas.clientWidth * DPR;
@@ -46,8 +48,13 @@ function HeroCanvas() {
           const dx = (pts[i].x - pts[j].x) * w;
           const dy = (pts[i].y - pts[j].y) * h;
           const d = Math.hypot(dx, dy);
-          if (d < 150 * DPR) {
-            ctx.strokeStyle = "rgba(110,168,255," + (1 - d / (150 * DPR)) * 0.18 + ")";
+          if (d < 165 * DPR) {
+            const a = (1 - d / (165 * DPR)) * 0.22;
+            const warm = pts[i].warm || pts[j].warm;
+            ctx.strokeStyle = warm
+              ? "rgba(255,93,115," + a.toFixed(3) + ")"
+              : "rgba(110,168,255," + a.toFixed(3) + ")";
+            ctx.lineWidth = warm ? 0.8 : 0.6;
             ctx.beginPath();
             ctx.moveTo(pts[i].x * w, pts[i].y * h);
             ctx.lineTo(pts[j].x * w, pts[j].y * h);
@@ -56,10 +63,21 @@ function HeroCanvas() {
         }
       }
       for (const pt of pts) {
-        const r = (1.6 + Math.sin(pt.p)) * DPR;
-        ctx.fillStyle = "rgba(140,190,255,0.9)";
+        const pulse = 0.5 + 0.5 * Math.sin(pt.p);
+        const r = (1.1 + pulse * 2.1) * pt.z * DPR;
+        const cx = pt.x * w;
+        const cy = pt.y * h;
+        const core = pt.warm ? "255,120,140" : "150,195,255";
+        const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 4);
+        glow.addColorStop(0, "rgba(" + core + "," + (0.6 * pt.z).toFixed(3) + ")");
+        glow.addColorStop(1, "rgba(" + core + ",0)");
+        ctx.fillStyle = glow;
         ctx.beginPath();
-        ctx.arc(pt.x * w, pt.y * h, r, 0, Math.PI * 2);
+        ctx.arc(cx, cy, r * 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "rgba(210,230,255," + (0.7 * pt.z).toFixed(3) + ")";
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
         ctx.fill();
       }
       raf = requestAnimationFrame(draw);
@@ -85,6 +103,8 @@ export default function Hero() {
       <div className="absolute inset-0 bg-grid [background-size:34px_34px] opacity-40" />
       <HeroCanvas />
       <div className="absolute left-1/2 top-1/3 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-brand/20 blur-[140px]" />
+      <div className="absolute right-[12%] top-[22%] h-[300px] w-[300px] rounded-full bg-exc/10 blur-[130px]" />
+      <div className="absolute bottom-[8%] left-[14%] h-[260px] w-[260px] rounded-full bg-inh/10 blur-[120px]" />
       <motion.div
         variants={stagger}
         initial="hidden"

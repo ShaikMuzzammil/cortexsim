@@ -9,10 +9,14 @@ import { useAnimationFrame } from "@/hooks/useAnimationFrame";
 import {
   drawRaster,
   drawLine,
+  drawHistogram,
   drawSpectrum,
   drawVoltage,
   drawPhasePlane,
   drawCorrelation,
+  drawMultiLine,
+  drawSpectrogram,
+  drawHeatmap,
   type RasterPoint,
 } from "@/lib/draw/charts";
 import { welch, dominantFrequency } from "@/lib/dsp/fft";
@@ -20,6 +24,8 @@ import {
   shannonEntropy,
   synchronyIndex,
   correlationMatrix,
+  isiHistogram,
+  rateDistribution,
 } from "@/lib/dsp/metrics";
 import { Recorder } from "@/lib/export/exporters";
 import type { Metrics, Spike } from "@/types";
@@ -33,6 +39,8 @@ import EquationEditor from "./EquationEditor";
 import CalculatorPanel from "./CalculatorPanel";
 import SweepPanel from "./SweepPanel";
 import ExportPanel from "./ExportPanel";
+import PerformancePanel from "./PerformancePanel";
+import NetworkStatsPanel from "./NetworkStatsPanel";
 
 const SPIKE_CAP = 9000;
 const RATE_CAP = 600;
@@ -83,6 +91,13 @@ export default function SimulatorShell() {
   const voltCanvas = useRef<HTMLCanvasElement>(null);
   const phaseCanvas = useRef<HTMLCanvasElement>(null);
   const corrCanvas = useRef<HTMLCanvasElement>(null);
+  const lfpCanvas = useRef<HTMLCanvasElement>(null);
+  const bandsCanvas = useRef<HTMLCanvasElement>(null);
+  const isiCanvas = useRef<HTMLCanvasElement>(null);
+  const rateDistCanvas = useRef<HTMLCanvasElement>(null);
+  const specgramCanvas = useRef<HTMLCanvasElement>(null);
+  const heatCanvas = useRef<HTMLCanvasElement>(null);
+  const specCols = useRef<number[][]>([]);
 
   const running = useSimStore((s) => s.running);
   const renderMode = useSimStore((s) => s.renderMode);
@@ -104,6 +119,7 @@ export default function SimulatorShell() {
     inhBuf.current = [];
     lfpBuf.current = [];
     corrBins.current = Array.from({ length: CORR_NEURONS }, () => []);
+    specCols.current = [];
     stepRef.current = 0;
   }, [rebuildTick]);
 
@@ -188,14 +204,48 @@ export default function SimulatorShell() {
     if (rateCanvas.current) drawLine(rateCanvas.current, rateBuf.current, "#6ea8ff", true);
     if (voltCanvas.current) drawVoltage(voltCanvas.current, probeV.current);
     if (phaseCanvas.current) drawPhasePlane(phaseCanvas.current, probeV.current, probeU.current);
-    if (spectrumCanvas.current && lfpBuf.current.length > 64) {
+    if (lfpBuf.current.length > 64) {
       const fs = 1000 / Math.max(0.1, eng.cfg.dt);
       const { freqs, power } = welch(lfpBuf.current, fs, 128);
-      drawSpectrum(spectrumCanvas.current, freqs, power, 120);
+      if (spectrumCanvas.current)
+        drawSpectrum(spectrumCanvas.current, freqs, power, 120);
+      if (frameRef.current % 20 === 0) {
+        const col = power.slice(0, Math.min(64, power.length));
+        specCols.current.push(col);
+        if (specCols.current.length > 110)
+          specCols.current.splice(0, specCols.current.length - 110);
+        if (specgramCanvas.current)
+          drawSpectrogram(specgramCanvas.current, specCols.current, 64);
+      }
     }
     if (corrCanvas.current && frameRef.current % 30 === 0) {
       const m = correlationMatrix(corrBins.current.slice(0, CORR_NEURONS));
       drawCorrelation(corrCanvas.current, m);
+    }
+    if (lfpCanvas.current) drawVoltage(lfpCanvas.current, lfpBuf.current);
+    if (bandsCanvas.current) {
+      const bands = [
+        { data: excBuf.current, color: "#ff5d73" },
+        { data: inhBuf.current, color: "#5db1ff" },
+        { data: rateBuf.current, color: "#6ea8ff" },
+      ];
+      drawMultiLine(bandsCanvas.current, bands);
+    }
+    if (isiCanvas.current && frameRef.current % 20 === 0) {
+      drawHistogram(isiCanvas.current, isiHistogram(allSpikes.current), "#5db1ff");
+    }
+    if (rateDistCanvas.current && frameRef.current % 20 === 0) {
+      const hist = rateDistribution(
+        spikeBuf.current,
+        stepRef.current - RASTER_WINDOW,
+      );
+      drawHistogram(rateDistCanvas.current, hist, "#36d399");
+    }
+    if (heatCanvas.current && frameRef.current % 15 === 0) {
+      drawHeatmap(
+        heatCanvas.current,
+        buildActivityGrid(spikeBuf.current, eng.N, stepRef.current),
+      );
     }
   }, []);
 
@@ -345,18 +395,42 @@ export default function SimulatorShell() {
               onProbe={handleProbe}
             />
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <ChartCard title="Spike raster"><canvas ref={rasterCanvas} className="h-full w-full" /></ChartCard>
-            <ChartCard title="Population rate"><canvas ref={rateCanvas} className="h-full w-full" /></ChartCard>
-            <ChartCard title="Power spectrum (0-120 Hz)"><canvas ref={spectrumCanvas} className="h-full w-full" /></ChartCard>
-            <ChartCard title="Probe voltage"><canvas ref={voltCanvas} className="h-full w-full" /></ChartCard>
-            <ChartCard title="Phase plane (v-u)"><canvas ref={phaseCanvas} className="h-full w-full" /></ChartCard>
-            <ChartCard title="Correlation matrix"><canvas ref={corrCanvas} className="h-full w-full" /></ChartCard>
+          <div className="space-y-2">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              Live visualization
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <ChartCard title="Spike raster"><canvas ref={rasterCanvas} className="h-full w-full" /></ChartCard>
+              <ChartCard title="Population rate"><canvas ref={rateCanvas} className="h-full w-full" /></ChartCard>
+              <ChartCard title="Rates: E / I / total"><canvas ref={bandsCanvas} className="h-full w-full" /></ChartCard>
+              <ChartCard title="LFP (mean membrane)"><canvas ref={lfpCanvas} className="h-full w-full" /></ChartCard>
+              <ChartCard title="Activity heatmap (neurons x time)"><canvas ref={heatCanvas} className="h-full w-full" /></ChartCard>
+              <ChartCard title="Probe voltage"><canvas ref={voltCanvas} className="h-full w-full" /></ChartCard>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              Signal &amp; network analysis
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <ChartCard title="Power spectrum (0-120 Hz)"><canvas ref={spectrumCanvas} className="h-full w-full" /></ChartCard>
+              <ChartCard title="Spectrogram (time x frequency)"><canvas ref={specgramCanvas} className="h-full w-full" /></ChartCard>
+              <ChartCard title="ISI histogram"><canvas ref={isiCanvas} className="h-full w-full" /></ChartCard>
+              <ChartCard title="Firing-rate distribution"><canvas ref={rateDistCanvas} className="h-full w-full" /></ChartCard>
+              <ChartCard title="Phase plane (v-u)"><canvas ref={phaseCanvas} className="h-full w-full" /></ChartCard>
+              <ChartCard title="Correlation matrix"><canvas ref={corrCanvas} className="h-full w-full" /></ChartCard>
+            </div>
           </div>
         </main>
 
         {/* Right: advanced tools */}
         <aside className="space-y-4">
+          <div className="panel panel-pad">
+            <PerformancePanel engineRef={engineRef} />
+          </div>
+          <div className="panel panel-pad">
+            <NetworkStatsPanel engineRef={engineRef} />
+          </div>
           <div className="panel panel-pad">
             <h2 className="mb-3 text-sm font-bold">Live equation editor</h2>
             <EquationEditor engineRef={engineRef} />
@@ -391,4 +465,28 @@ function activeFraction(points: RasterPoint[], N: number, nowStep: number): numb
   const t0 = nowStep - 200;
   for (const p of points) if (p.t >= t0) seen.add(p.i);
   return seen.size / Math.max(1, N);
+}
+
+// Build a [neuron-group x time-bin] spike-count grid for the activity heatmap.
+function buildActivityGrid(
+  points: RasterPoint[],
+  N: number,
+  nowStep: number,
+): number[][] {
+  const rows = 48;
+  const cols = 64;
+  const grid: number[][] = Array.from({ length: rows }, () =>
+    new Array(cols).fill(0),
+  );
+  const t0 = nowStep - RASTER_WINDOW;
+  for (const p of points) {
+    if (p.t < t0) continue;
+    const r = Math.min(rows - 1, Math.floor((p.i / N) * rows));
+    const c = Math.min(
+      cols - 1,
+      Math.floor(((p.t - t0) / RASTER_WINDOW) * cols),
+    );
+    grid[r][c] += 1;
+  }
+  return grid;
 }
