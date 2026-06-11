@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import type { Activity, Control, Params, Readout } from "@/lib/studio/types";
+import { educationFor } from "@/lib/studio/education";
 
 const STATUS_LABEL: Record<string, string> = {
   live: "Live",
@@ -26,6 +27,9 @@ export default function ActivityRunner({ activity }: { activity: Activity }) {
   const [params, setParams] = useState<Params>(() => defaultParams(activity.controls));
   const [running, setRunning] = useState(true);
   const [readouts, setReadouts] = useState<Readout[]>([]);
+  const [showInfo, setShowInfo] = useState(false);
+
+  const edu = educationFor(activity.id);
 
   // Re-initialise whenever the activity changes.
   useEffect(() => {
@@ -35,6 +39,7 @@ export default function ActivityRunner({ activity }: { activity: Activity }) {
     stateRef.current = activity.init(fresh);
     tickRef.current = 0;
     setRunning(true);
+    setShowInfo(false);
   }, [activity]);
 
   function sizeCanvas(): { ctx: CanvasRenderingContext2D; w: number; h: number } | null {
@@ -101,7 +106,7 @@ export default function ActivityRunner({ activity }: { activity: Activity }) {
       if (activity.readouts && stateRef.current) {
         setReadouts(activity.readouts(stateRef.current, paramsRef.current));
       }
-    }, 280);
+    }, 250);
     return () => clearInterval(id);
   }, [activity]);
 
@@ -110,8 +115,20 @@ export default function ActivityRunner({ activity }: { activity: Activity }) {
     setParams(paramsRef.current);
   }
 
+  function resetParams() {
+    const fresh = defaultParams(activity.controls);
+    paramsRef.current = fresh;
+    setParams(fresh);
+    stateRef.current = activity.init(fresh);
+    tickRef.current = 0;
+  }
+
   const statusClass =
     activity.status === "live" ? "text-good" : activity.status === "beta" ? "text-warn" : "text-slate-400";
+
+  const outputLine = readouts.length
+    ? readouts.map((r) => r.label + ": " + r.value).join("   \u2022   ")
+    : "Waiting for output\u2026";
 
   return (
     <motion.div
@@ -119,7 +136,7 @@ export default function ActivityRunner({ activity }: { activity: Activity }) {
       initial={enterInitial}
       animate={enterAnimate}
       transition={enterTransition}
-      className="flex h-full flex-col gap-4"
+      className="flex flex-col gap-4"
     >
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -134,19 +151,90 @@ export default function ActivityRunner({ activity }: { activity: Activity }) {
           </div>
           <p className="mt-1 max-w-2xl text-sm text-slate-400">{activity.what}</p>
         </div>
-        <button
-          onClick={() => setRunning((r) => !r)}
-          className="studio-hot rounded-lg border border-edge bg-panel2 px-3 py-1.5 text-sm text-slate-200 hover:border-brand"
-        >
-          {running ? "Pause" : "Run"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowInfo((v) => !v)}
+            className="studio-hot rounded-lg border border-edge bg-panel2 px-3 py-1.5 text-sm text-slate-200 hover:border-purple-400"
+          >
+            {showInfo ? "Hide info" : "Why it matters"}
+          </button>
+          <button
+            onClick={resetParams}
+            className="studio-hot rounded-lg border border-edge bg-panel2 px-3 py-1.5 text-sm text-slate-200 hover:border-brand"
+          >
+            Reset
+          </button>
+          <button
+            onClick={() => setRunning((r) => !r)}
+            className="studio-hot rounded-lg border border-edge bg-panel2 px-3 py-1.5 text-sm text-slate-200 hover:border-brand"
+          >
+            {running ? "Pause" : "Run"}
+          </button>
+        </div>
       </header>
 
-      <div className="grid flex-1 gap-4 xl:grid-cols-[1fr_280px]">
-        <div className="flex min-h-[320px] flex-col gap-3">
-          <div className="relative flex-1 overflow-hidden rounded-xl border border-edge bg-[#05070e]">
+      <AnimatePresence>
+        {showInfo && edu && (
+          <motion.div
+            initial={infoInitial}
+            animate={infoAnimate}
+            exit={infoInitial}
+            className="overflow-hidden rounded-xl border border-purple-500/40 bg-purple-500/5 p-4"
+          >
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-purple-300">
+                  Why this matters
+                </div>
+                <p className="mt-1 text-sm text-slate-300">{edu.why}</p>
+                <div className="mt-3 text-[11px] font-semibold uppercase tracking-wider text-purple-300">
+                  Knowledge gain
+                </div>
+                <p className="mt-1 text-sm text-slate-300">{edu.knowledge}</p>
+              </div>
+              <div>
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-purple-300">
+                  Real-world applications
+                </div>
+                <ul className="mt-1 space-y-1">
+                  {edu.applications.map((a, i) => (
+                    <li key={i} className="flex gap-2 text-sm text-slate-300">
+                      <span className="text-purple-300">{"\u2192"}</span>
+                      <span>{a}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-3 text-[11px] font-semibold uppercase tracking-wider text-purple-300">
+                  Tech stack
+                </div>
+                <div className="mt-1 flex flex-wrap gap-1.5">
+                  {edu.stack.map((s, i) => (
+                    <span key={i} className="rounded-md border border-edge bg-panel px-2 py-0.5 text-[11px] text-slate-300">
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 rounded-lg border border-good/30 bg-good/5 px-3 py-2 text-sm text-good">
+              <span className="font-semibold">Try this: </span>
+              <span className="text-slate-200">{edu.tryThis}</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="grid gap-4 xl:grid-cols-[1fr_300px]">
+        <div className="flex flex-col gap-3">
+          <div className="relative h-[360px] overflow-hidden rounded-xl border border-edge bg-[#05070e]">
             <canvas ref={canvasRef} className="h-full w-full" />
           </div>
+
+          <div className="rounded-lg border border-edge bg-black/40 px-3 py-2 font-mono text-[11px] text-good">
+            <span className="text-slate-500">output &gt; </span>
+            {outputLine}
+          </div>
+
           {readouts.length > 0 && (
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {readouts.map((r, i) => (
@@ -163,8 +251,11 @@ export default function ActivityRunner({ activity }: { activity: Activity }) {
 
         <div className="flex flex-col gap-4">
           <div className="rounded-xl border border-edge bg-panel2/60 p-4">
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-              Controls
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                Controls
+              </span>
+              <span className="text-[10px] text-slate-500">{activity.controls.length} options</span>
             </div>
             <div className="mt-3 space-y-4">
               {activity.controls.map((c) => (
@@ -290,3 +381,5 @@ function ControlField({
 const enterInitial = { opacity: 0, y: 10 };
 const enterAnimate = { opacity: 1, y: 0 };
 const enterTransition = { duration: 0.28 };
+const infoInitial = { opacity: 0, height: 0 };
+const infoAnimate = { opacity: 1, height: "auto" };

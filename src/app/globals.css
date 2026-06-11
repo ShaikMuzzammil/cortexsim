@@ -101,18 +101,6 @@ canvas {
   border-color: rgba(54, 211, 153, 0.9);
   background: rgba(54, 211, 153, 0.08);
 }
-@media (pointer: fine) {
-  body.studio-cursor-on,
-  body.studio-cursor-on a,
-  body.studio-cursor-on button,
-  body.studio-cursor-on input,
-  body.studio-cursor-on select,
-  body.studio-cursor-on textarea,
-  body.studio-cursor-on [role="button"],
-  body.studio-cursor-on .studio-hot {
-    cursor: none;
-  }
-}
 @media (prefers-reduced-motion: reduce) {
   .studio-cursor-dot,
   .studio-cursor-ring {
