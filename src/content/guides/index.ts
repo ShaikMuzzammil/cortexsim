@@ -7,17 +7,27 @@ import { spectralAnalysis } from "./spectral-analysis";
 import { synchronyMetrics } from "./synchrony-metrics";
 import { stdpPlasticity } from "./stdp-plasticity";
 import { exportingData } from "./exporting-data";
+import { oscillationsRhythms } from "./oscillations-rhythms";
+import { balancedNetworks } from "./balanced-networks";
+import { informationTheory } from "./information-theory";
+import { neuromorphicComputing } from "./neuromorphic-computing";
+import { reproducibleResearch } from "./reproducible-research";
 
 // Ordered learning path. The order here is the recommended reading sequence.
 export const GUIDES: Guide[] = [
   gettingStarted,
   izhikevichModel,
   spikingDynamics,
+  balancedNetworks,
+  oscillationsRhythms,
   networkTopologies,
   spectralAnalysis,
   synchronyMetrics,
+  informationTheory,
   stdpPlasticity,
+  neuromorphicComputing,
   exportingData,
+  reproducibleResearch,
 ];
 
 export function getGuide(slug: string): Guide | undefined {

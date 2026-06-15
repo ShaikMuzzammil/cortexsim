@@ -4,16 +4,26 @@ import { motion } from "framer-motion";
 import { fadeUp, stagger, scaleIn, viewportOnce } from "@/lib/motion";
 
 const STACK = [
-  { name: "Next.js 14", note: "App Router + API routes" },
+  { name: "Next.js 14", note: "App Router + RSC" },
   { name: "React 18", note: "Concurrent UI" },
-  { name: "TypeScript", note: "End-to-end types" },
+  { name: "TypeScript 5", note: "End-to-end types" },
   { name: "Tailwind CSS", note: "Design system" },
   { name: "Framer Motion", note: "Smooth animation" },
   { name: "Three.js", note: "WebGL 3D" },
+  { name: "Canvas 2D", note: "Live raster + scopes" },
   { name: "Zustand", note: "State store" },
-  { name: "MongoDB", note: "Persistence (MERN)" },
+  { name: "Web Workers", note: "Off-thread sweeps" },
+  { name: "Server-Sent Events", note: "Live activity feed" },
+  { name: "Node crypto", note: "scrypt + HMAC auth" },
+  { name: "REST + tokens", note: "23 JSON endpoints" },
+  { name: "Webhooks", note: "Signed outbound events" },
+  { name: "File / Mongo store", note: "Pluggable persistence" },
+  { name: "lucide-react", note: "Icon system" },
+  { name: "WebGL shaders", note: "GPU field rendering" },
+  { name: "FFT / DSP", note: "Welch spectra" },
   { name: "Node runtime", note: "Serverless functions" },
   { name: "Vercel", note: "Edge deployment" },
+  { name: "Docker", note: "Self-host ready" },
 ];
 
 export default function TechStack() {

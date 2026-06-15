@@ -42,6 +42,9 @@ export default function LearnPage() {
             >
               <Map size={15} /> Mind map
             </Link>
+            <Link href="/learn/practice" className="btn-ghost">
+              Practice
+            </Link>
             <Link href="/tips" className="btn-ghost">
               Tips
             </Link>

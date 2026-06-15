@@ -70,4 +70,39 @@ export const TIPS: Tip[] = [
     body: "When you find something interesting, capture it immediately - a CSV of spikes or a PNG of the spectrum costs nothing and saves re-running later.",
     category: "Workflow",
   },
+  {
+    title: "Move one slider at a time",
+    body: "To attribute an effect to a cause, change a single parameter between runs. Sweeping two at once makes the result impossible to interpret.",
+    category: "Exploration",
+  },
+  {
+    title: "Watch synchrony at the tipping point",
+    body: "The jump from balanced firing to population bursts is often sharp. Reduce inhibition slowly and keep an eye on the synchrony index to catch the transition.",
+    category: "Neuroscience",
+  },
+  {
+    title: "Read peaks, not pictures",
+    body: "A rhythm you think you see in the raster should show up as a peak in the power spectrum. If it doesn't, it may be an illusion of the eye.",
+    category: "Analysis",
+  },
+  {
+    title: "Pin the seed for papers",
+    body: "Record the random seed with every run you intend to publish. Vary only the seed when you want to report run-to-run variability.",
+    category: "Workflow",
+  },
+  {
+    title: "Use the Compare view",
+    body: "Instead of squinting between two runs, open Compare and diff up to four side by side - differing config rows are highlighted automatically.",
+    category: "Workflow",
+  },
+  {
+    title: "Aim for sparsity when prototyping hardware",
+    body: "Low average firing rates translate directly into lower energy on neuromorphic chips. Keep the network quiet but informative.",
+    category: "Neuromorphic",
+  },
+  {
+    title: "Name runs like a scientist",
+    body: "A label like 'drive-0.6-strong-inhib' beats 'run 14'. Future-you comparing a dozen runs will be grateful.",
+    category: "Workflow",
+  },
 ];

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { GraduationCap, Map, Lightbulb, BookOpen, ArrowRight } from "lucide-react";
+import { GraduationCap, Map, Lightbulb, BookOpen, ArrowRight, CheckCircle2 } from "lucide-react";
 import { GUIDES } from "@/content/guides";
 import { TOTAL_XP } from "@/content/modules";
 import { fadeUp, stagger, viewportOnce } from "@/lib/motion";
@@ -31,6 +31,12 @@ const CARDS = [
     icon: <BookOpen size={20} className="text-inh" />,
     title: "Glossary",
     body: "Every term defined in plain language, searchable.",
+  },
+  {
+    href: "/learn/practice",
+    icon: <CheckCircle2 size={20} className="text-exc" />,
+    title: "Practice & quizzes",
+    body: "Test yourself with interactive knowledge checks across every domain, with instant explanations.",
   },
 ];
 

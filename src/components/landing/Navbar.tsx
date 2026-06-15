@@ -21,6 +21,8 @@ const PAGE_LINKS: Array<{ href: string; label: string }> = [
   { href: "/learn/map", label: "Map" },
   { href: "/platform", label: "Sections" },
   { href: "/docs", label: "Docs" },
+  { href: "/app", label: "Workspace" },
+  { href: "/auth/login", label: "Sign in" },
 ];
 
 export default function Navbar() {
