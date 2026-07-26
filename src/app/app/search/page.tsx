@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { api, timeAgo } from "@/lib/client/api";
@@ -13,7 +13,7 @@ interface Row {
   at: string;
 }
 
-function SearchPageContent() {
+export default function SearchPage() {
   const router = useRouter();
   const params = useSearchParams();
   const initial = params?.get("q") || "";
@@ -73,13 +73,5 @@ function SearchPageContent() {
         ))}
       </ul>
     </div>
-  );
-}
-
-export default function SearchPage() {
-  return (
-    <Suspense fallback={<div className="text-slate-500 text-sm">Loading...</div>}>
-      <SearchPageContent />
-    </Suspense>
   );
 }

@@ -454,7 +454,7 @@ export default function DatasetsPage() {
       )}
 
       {/* Stats Footer */}
-      {filtered.length > 0 && (
+      {!loading && filtered.length > 0 && (
         <div className="flex items-center gap-4 text-xs text-slate-500 pt-2">
           <span>{filtered.length} datasets</span>
           <span>•</span>
