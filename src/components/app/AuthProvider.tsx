@@ -1,7 +1,6 @@
 "use client";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { api } from "@/lib/client/api";
 
 export interface AppUser {
   id: string;
@@ -9,6 +8,7 @@ export interface AppUser {
   name: string;
   role: string;
   createdAt: string;
+  isGuest?: boolean;
 }
 
 interface AuthContextValue {
@@ -29,6 +29,16 @@ export function useAuth(): AuthContextValue {
   return useContext(Ctx);
 }
 
+// Guest user for no-login mode
+const GUEST_USER: AppUser = {
+  id: "guest-user",
+  email: "guest@cortexsim.local",
+  name: "Guest User",
+  role: "user",
+  createdAt: new Date().toISOString(),
+  isGuest: true,
+};
+
 export default function AuthProvider({
   children,
   requireAuth = false,
@@ -40,35 +50,49 @@ export default function AuthProvider({
   const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Auto-login as guest - NO LOGIN REQUIRED
   const refresh = async () => {
     try {
-      const res = await api<{ user: AppUser | null }>("/api/auth/me");
-      setUser(res.user);
+      // Try real auth first (for backward compatibility)
+      const res = await fetch("/api/auth/me", { credentials: "include" });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.user) {
+          setUser(data.user);
+          setLoading(false);
+          return;
+        }
+      }
     } catch {
-      setUser(null);
-    } finally {
-      setLoading(false);
+      // Ignore errors - fall through to guest mode
     }
+    
+    // Default to guest mode - DIRECT ENTRY WITHOUT LOGIN
+    setUser(GUEST_USER);
+    setLoading(false);
   };
 
   const logout = async () => {
     try {
-      await api("/api/auth/logout", { method: "POST" });
+      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
     } catch {}
-    setUser(null);
-    router.push("/auth/login");
+    // Re-login as guest instead of redirecting
+    setUser(GUEST_USER);
   };
 
   useEffect(() => {
-    refresh();
+    // Initialize with guest user immediately for instant access
+    const initGuest = () => {
+      setUser(GUEST_USER);
+      setLoading(false);
+    };
+    
+    // Try auth in background, but show guest immediately
+    initGuest();
+    refresh(); // Will upgrade to real user if session exists
   }, []);
 
-  useEffect(() => {
-    if (!loading && requireAuth && !user) {
-      router.replace("/auth/login");
-    }
-  }, [loading, user, requireAuth, router]);
-
+  // No longer redirects to login - always allows access
   const ctxValue: AuthContextValue = { user, loading, refresh, logout };
   return <Ctx.Provider value={ctxValue}>{children}</Ctx.Provider>;
 }
