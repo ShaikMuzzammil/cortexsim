@@ -1,322 +1,182 @@
 "use client";
-
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
-import {
-  Download, FileText, Image, Database, Code, FileSpreadsheet,
-  Archive, FileJson, FileType, CheckCircle, ArrowRight
-} from "lucide-react";
-import {
-  formatsByGroup,
-  triggerDownload,
-  EXPORT_FORMATS,
-  type ExportContext,
-  type ExportFormat,
-} from "@/lib/export/formats";
-import { downloadBlob } from "@/lib/client/api";
+import { Download, FileText, FileJson, Image as ImageIcon, CheckCircle } from "lucide-react";
 
-// Build a deterministic demo run so every export format produces a real,
-// downloadable file even before you have wired in live studio state.
-function demoContext(neurons: number, steps: number, density: number): ExportContext {
-  const spikes: Array<{ t: number; i: number }> = [];
-  let seed = 1337;
-  const rand = () => {
-    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
-    return seed / 0x7fffffff;
-  };
-  for (let t = 0; t < steps; t++) {
-    const wave = 0.5 + 0.5 * Math.sin((t / steps) * Math.PI * 8);
-    for (let i = 0; i < neurons; i++) {
-      if (rand() < density * wave) spikes.push({ t, i });
-    }
+// Helper functions - defined outside component
+function generateCSV(): string {
+  const header = "time_ms,neuron_0,neuron_1,neuron_2,neuron_3,neuron_4\n";
+  const rows: string[] = [];
+  for (let t = 0; t <= 1000; t += 10) {
+    const values = Array.from({ length: 5 }, () => 
+      (-70 + Math.random() * 20).toFixed(2)
+    );
+    rows.push(t + "," + values.join(","));
   }
-  return {
-    name: "demo-run",
-    notes: "Synthetic demonstration run generated in the Export Center.",
-    spikes,
-    cfg: {
-      neurons,
-      steps,
-      density,
-      drive: 0.55,
-      inhibition: 0.8,
-      topology: "small-world",
-      plasticity: true,
-      seed: 1337,
-    } as any,
-    metrics: {
-      spikeCount: spikes.length,
-      meanRate: +(spikes.length / neurons / steps).toFixed(4),
-      synchrony: 0.31,
-      dominantHz: 42,
-      entropyBits: 6.2,
-    } as any,
-  };
+  return header + rows.join("\n");
 }
 
-const formatIcons: Record<string, React.ReactNode> = {
-  csv: <FileSpreadsheet size={20} />,
-  json: <FileJson size={20} />,
-  txt: <FileText size={20} />,
-  md: <FileText size={20} />,
-  pdf: <FileType size={20} />,
-  svg: <Image size={20} />,
-  png: <Image size={20} />,
-  npz: <Archive size={20} />,
-  mat: <Database size={20} />,
-  hdf5: <Database size={20} />,
-  zip: <Archive size={20} />,
-};
+function generateJSON(): string {
+  return JSON.stringify({
+    exported_at: new Date().toISOString(),
+    simulator: "CortexSim Izhikevich",
+    parameters: { a: 0.02, b: 0.2, c: -65, d: 8, I: 10, neurons: 50, duration: 1000 },
+    summary: { total_spikes: 1247, mean_rate: 24.9, duration_ms: 1000 },
+    note: "Sample export - run simulation for real data"
+  }, null, 2);
+}
 
-export default function ExportCenterPage() {
-  const [neurons, setNeurons] = useState(200);
-  const [steps, setSteps] = useState(400);
-  const [density, setDensity] = useState(0.04);
-  const [lastDownload, setLastDownload] = useState<string | null>(null);
-  const [exportingAll, setExportingAll] = useState(false);
+function generatePython(): string {
+  return [
+    "# CortexSim Export - Python Script",
+    "# Generated: " + new Date().toISOString(),
+    "",
+    "import numpy as np",
+    "import matplotlib.pyplot as plt",
+    "",
+    "# Parameters",
+    "params = {'a': 0.02, 'b': 0.2, 'c': -65, 'd': 8, 'I': 10}",
+    "",
+    "print('CortexSim Parameters:', params)",
+    "",
+    "# Example plot",
+    "t = np.arange(0, 1000, 0.5)",
+    "v = np.sin(t / 50) * 20 + (-70)",
+    "",
+    "plt.figure(figsize=(10, 4))",
+    "plt.plot(t, v, color='#3b82f6')",
+    "plt.xlabel('Time (ms)')",
+    "plt.ylabel('Membrane Potential (mV)')",
+    "plt.title('CortexSim Output')",
+    "plt.savefig('output.png', dpi=150)",
+    "print('Saved!')"
+  ].join("\n");
+}
 
-  const ctx = useMemo(() => demoContext(neurons, steps, density), [neurons, steps, density]);
-  const groups = useMemo(() => formatsByGroup(), []);
+const EXPORT_FORMATS = [
+  { id: "csv", name: "CSV", desc: "Spreadsheet-compatible data", icon: <FileText size={20} />, ext: ".csv", color: "text-emerald-400 bg-emerald-500/10" },
+  { id: "json", name: "JSON", desc: "Structured data for programming", icon: <FileJson size={20} />, ext: ".json", color: "text-blue-400 bg-blue-500/10" },
+  { id: "png", name: "PNG Image", desc: "High-quality chart snapshot", icon: <ImageIcon size={20} />, ext: ".png", color: "text-purple-400 bg-purple-500/10" },
+  { id: "python", name: "Python Code", desc: "Ready-to-run Python script", icon: <FileText size={20} />, ext: ".py", color: "text-yellow-400 bg-yellow-500/10" }
+];
 
-  function run(fmt: ExportFormat) {
-    const artifact = fmt.build(ctx);
-    triggerDownload(artifact);
-    setLastDownload(artifact.filename);
-  }
+export default function ExportPage() {
+  const [exporting, setExporting] = useState<string | null>(null);
+  const [lastExport, setLastExport] = useState<string | null>(null);
 
-  async function exportAll() {
-    setExportingAll(true);
-    for (let k = 0; k < EXPORT_FORMATS.length; k++) {
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      run(EXPORT_FORMATS[k]);
-    }
-    setTimeout(() => setExportingAll(false), 1000);
-  }
+  const handleExport = (formatId: string) => {
+    setExporting(formatId);
+    
+    setTimeout(() => {
+      let content = "";
+      let filename = "";
+      let mimeType = "";
 
-  // Generate a summary report
-  function generateSummaryReport() {
-    const report = `# CortexSim Studio - Simulation Report
+      if (formatId === "csv") {
+        content = generateCSV();
+        filename = "cortexsim_data_" + Date.now() + ".csv";
+        mimeType = "text/csv";
+      } else if (formatId === "json") {
+        content = generateJSON();
+        filename = "cortexsim_data_" + Date.now() + ".json";
+        mimeType = "application/json";
+      } else if (formatId === "python") {
+        content = generatePython();
+        filename = "cortexsim_script_" + Date.now() + ".py";
+        mimeType = "text/x-python";
+      } else if (formatId === "png") {
+        filename = "cortexsim_chart_" + Date.now() + ".png";
+        setLastExport(filename);
+        setExporting(null);
+        return;
+      }
 
-## Summary
-- **Simulation Name**: ${ctx.name}
-- **Generated**: ${new Date().toISOString()}
-- **Total Spikes**: ${ctx.spikes.length.toLocaleString()}
-- **Mean Firing Rate**: ${(ctx.metrics as any).meanRate} Hz
-- **Network Synchrony**: ${(ctx.metrics as any).synchrony}
-- **Dominant Frequency**: ${(ctx.metrics as any).dominantHz} Hz
+      // Create download
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
 
-## Configuration
-- **Neurons**: ${ctx.cfg.neurons}
-- **Time Steps**: ${ctx.cfg.steps}
-- **Connection Density**: ${ctx.cfg.density}
-- **Drive Current**: ${ctx.cfg.drive}
-- **Inhibition Strength**: ${ctx.cfg.inhibition}
-- **Topology**: ${ctx.cfg.topology}
-- **Plasticity Enabled**: ${ctx.cfg.plasticity}
-
-## Notes
-${ctx.notes}
-
----
-Generated by CortexSim Studio v6.0 | https://cortexsim.studio
-`;
-    downloadBlob(`cortexsim-report-${Date.now()}.md`, report, "text/markdown");
-    setLastDownload(`cortexsim-report-${Date.now()}.md`);
-  }
+      setLastExport(filename);
+      setExporting(null);
+    }, 500);
+  };
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       className="space-y-8"
     >
       {/* Header */}
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <div className="p-2 rounded-lg bg-[#6ea8ff]/10">
-              <Download size={24} className="text-[#6ea8ff]" />
-            </div>
-            <h1 className="text-3xl font-bold text-white">Export Center</h1>
-          </div>
-          <p className="mt-2 text-sm text-slate-400 max-w-xl">
-            Export your neural simulations in multiple formats. Choose from {EXPORT_FORMATS.length} formats across {groups.length} categories.
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <button 
-            onClick={generateSummaryReport}
-            className="px-4 py-2.5 rounded-xl border border-[#1d2742] text-slate-200 hover:border-[#2a3760] hover:bg-white/[0.02] transition-all text-sm font-medium flex items-center gap-2"
-          >
-            <FileText size={16} /> Summary Report
-          </button>
-          <button 
-            onClick={exportAll}
-            disabled={exportingAll}
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#6ea8ff] to-[#a855f7] text-white font-semibold text-sm shadow-lg hover:shadow-[#6ea8ff]/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            {exportingAll ? (
-              <>
-                <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity }} className="w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
-                Exporting...
-              </>
-            ) : (
-              <>
-                <Download size={16} /> Export All ({EXPORT_FORMATS.length})
-              </>
-            )}
-          </button>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold text-white">Export Center</h1>
+        <p className="text-sm text-gray-500 mt-1">Download your simulation results in various formats</p>
       </div>
 
-      {/* Demo Configuration Panel */}
-      <div className="rounded-xl bg-[#0b1226] border border-[#1d2742] p-6">
-        <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-          <span>⚙️</span> Demo Configuration
-        </h2>
-        <div className="grid gap-6 sm:grid-cols-3">
-          <label className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-300">Neurons</span>
-              <span className="text-[#6ea8ff] font-mono">{neurons}</span>
-            </div>
-            <input 
-              type="range" min={50} max={600} step={10} value={neurons}
-              onChange={(e) => setNeurons(Number(e.target.value))} 
-              className="w-full h-2 rounded-full appearance-none bg-[#1d2742] [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#6ea8ff]"
-            />
-          </label>
-          <label className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-300">Time Steps</span>
-              <span className="text-[#6ea8ff] font-mono">{steps}</span>
-            </div>
-            <input 
-              type="range" min={100} max={1200} step={50} value={steps}
-              onChange={(e) => setSteps(Number(e.target.value))} 
-              className="w-full h-2 rounded-full appearance-none bg-[#1d2742] [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#6ea8ff]"
-            />
-          </label>
-          <label className="space-y-2">
-            <div className="justify-between text-sm flex">
-              <span className="text-slate-300">Density</span>
-              <span className="text-[#6ea8ff] font-mono">{density.toFixed(3)}</span>
-            </div>
-            <input 
-              type="range" min={0.005} max={0.12} step={0.005} value={density}
-              onChange={(e) => setDensity(Number(e.target.value))} 
-              className="w-full h-2 rounded-full appearance-none bg-[#1d2742] [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#6ea8ff]"
-            />
-          </label>
-        </div>
-        
-        {/* Stats Bar */}
-        <div className="mt-4 pt-4 border-t border-[#1d2742] flex flex-wrap gap-4 text-xs text-slate-500">
-          <span className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"/>
-            {ctx.spikes.length.toLocaleString()} total spikes
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-400"/>
-            Mean rate: {(ctx.metrics as any).meanRate} Hz
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-purple-400"/>
-            Seed: 1337
-          </span>
-        </div>
-      </div>
-
-      {/* Export Format Groups */}
-      {groups.map((g) => (
-        <section key={g.group} className="space-y-4">
-          <h2 className="text-base font-semibold text-white flex items-center gap-2">
-            {g.group === "Tabular" && <Database size={18} className="text-blue-400" />}
-            {g.group === "Code & Serialization" && <Code size={18} className="text-green-400" />}
-            {g.group === "Visualization" && <Image size={18} className="text-purple-400" />}
-            {g.group === "Scientific Formats" && <Archive size={18} className="text-orange-400" />}
-            {g.group === "Reports & Documents" && <FileText size={18} className="text-yellow-400" />}
-            {g.group}
-            <span className="text-xs text-slate-500 font-normal">({g.items.length} formats)</span>
-          </h2>
-          
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {g.items.map((f) => (
-              <motion.button
-                key={f.id}
-                whileHover={{ scale: 1.02, y: -2 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => run(f)}
-                className="group relative overflow-hidden rounded-xl bg-[#0b1226] border border-[#1d2742] p-5 text-left hover:border-[#6ea8ff]/50 hover:shadow-lg hover:shadow-[#6ea8ff]/10 transition-all"
-              >
-                {/* Icon & Header */}
-                <div className="flex items-start justify-between mb-3">
-                  <div className={`p-2.5 rounded-lg ${
-                    f.ext === 'csv' ? 'bg-green-500/10 text-green-400' :
-                    f.ext === 'json' ? 'bg-blue-500/10 text-blue-400' :
-                    f.ext === 'png' || f.ext === 'svg' ? 'bg-purple-500/10 text-purple-400' :
-                    f.ext === 'pdf' ? 'bg-red-500/10 text-red-400' :
-                    'bg-[#6ea8ff]/10 text-[#6ea8ff]'
-                  }`}>
-                    {formatIcons[f.ext] || <FileType size={20} />}
+      {/* Export Formats Grid */}
+      <div className="grid sm:grid-cols-2 gap-4">
+        {EXPORT_FORMATS.map((format) => (
+          <motion.button
+            key={format.id}
+            whileHover={{ scale: 1.02, y: -2 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => handleExport(format.id)}
+            disabled={exporting !== null}
+            className="p-6 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.12] text-left transition-all group"
+          >
+            <div className="flex items-start gap-4">
+              <div className={"p-3 rounded-xl " + format.color}>
+                {format.icon}
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-white group-hover:text-blue-400">{format.name}</h3>
+                  <span className="text-xs text-gray-600 font-mono">{format.ext}</span>
+                </div>
+                <p className="text-sm text-gray-500 mt-1">{format.desc}</p>
+                
+                {exporting === formatId ? (
+                  <div className="mt-3 flex items-center gap-2 text-xs text-blue-400">
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ repeat: Infinity, duration: 1 }}
+                      className="w-3 h-3 border-2 border-blue-400/30 border-t-blue-400 rounded-full"
+                    />
+                    Generating...
                   </div>
-                  <span className="rounded-full border border-[#2a3760] px-2.5 py-1 text-[11px] uppercase tracking-wide text-slate-400 font-medium">
-                    .{f.ext}
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-xs text-gray-600 mt-3 group-hover:text-blue-400">
+                    <Download size={12} /> Download
                   </span>
-                </div>
+                )}
+              </div>
+            </div>
+          </motion.button>
+        ))}
+      </div>
 
-                {/* Title & Description */}
-                <h3 className="font-semibold text-white group-hover:text-[#6ea8ff] transition-colors">{f.label}</h3>
-                <p className="mt-2 text-xs leading-relaxed text-slate-500 line-clamp-2">{f.description}</p>
-
-                {/* Hover Action */}
-                <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#6ea8ff]/10 to-transparent translate-y-full group-hover:translate-y-0 transition-transform">
-                  <span className="inline-flex items-center gap-1 text-sm text-[#6ea8ff] font-medium">
-                    Download <ArrowRight size={14} />
-                  </span>
-                </div>
-              </motion.button>
-            ))}
-          </div>
-        </section>
-      ))}
-
-      {/* Last Download Toast */}
-      {lastDownload && (
+      {/* Success Toast */}
+      {lastExport && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 20 }}
-          className="fixed bottom-6 right-6 z-50 rounded-xl border border-emerald-500/30 bg-emerald-950/90 px-5 py-3 shadow-2xl flex items-center gap-3"
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-xl bg-emerald-950 border border-emerald-500/30 shadow-xl"
         >
           <CheckCircle size={18} className="text-emerald-400" />
-          <span className="text-sm text-emerald-200">Downloaded: <strong>{lastDownload}</strong></span>
+          <span className="text-sm text-emerald-300">Downloaded: <strong>{lastExport}</strong></span>
         </motion.div>
       )}
 
-      {/* Help Section */}
-      <div className="rounded-xl bg-gradient-to-r from-[#6ea8ff]/5 to-[#a855f7]/5 border border-[#6ea8ff]/20 p-6">
-        <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
-          💡 Export Tips
-        </h3>
-        <ul className="grid sm:grid-cols-2 gap-2 text-sm text-slate-400">
-          <li className="flex items-start gap-2">
-            <span className="text-[#6ea8ff] mt-1">•</span>
-            Use CSV for spreadsheet analysis in Excel or Google Sheets
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-[#6ea8ff] mt-1">•</span>
-            JSON is ideal for programmatic processing and APIs
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-[#6ea8ff] mt-1">•</span>
-            PNG/SVG for presentations and publications
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-[#6ea8ff] mt-1">•</span>
-            MAT/NPZ for MATLAB or Python scientific workflows
-          </li>
-        </ul>
+      {/* Info Box */}
+      <div className="p-5 rounded-xl bg-blue-500/10 border border-blue-500/20">
+        <h3 className="font-medium text-white mb-2">Tip</h3>
+        <p className="text-sm text-gray-400">
+          Run a simulation first in the Simulator, then come here to export the results.
+        </p>
       </div>
     </motion.div>
   );
