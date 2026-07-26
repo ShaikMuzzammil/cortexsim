@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { api, downloadBlob } from "@/lib/client/api";
 
@@ -20,7 +20,7 @@ function equal(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
-export default function ComparePage() {
+function ComparePageContent() {
   const search = useSearchParams();
   const initial = (search?.get("ids") || "").split(",").filter(Boolean);
   const [ids, setIds] = useState<string[]>(initial);
@@ -141,5 +141,13 @@ export default function ComparePage() {
         </>
       )}
     </div>
+  );
+}
+
+export default function ComparePage() {
+  return (
+    <Suspense fallback={<div className="text-slate-500 text-sm">Loading...</div>}>
+      <ComparePageContent />
+    </Suspense>
   );
 }

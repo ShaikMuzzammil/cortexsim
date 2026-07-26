@@ -139,7 +139,7 @@ export default function ExportPage() {
                 </div>
                 <p className="text-sm text-gray-500 mt-1">{format.desc}</p>
                 
-                {exporting === formatId ? (
+                {exporting === format.id ? (
                   <div className="mt-3 flex items-center gap-2 text-xs text-blue-400">
                     <motion.div
                       animate={{ rotate: 360 }}
